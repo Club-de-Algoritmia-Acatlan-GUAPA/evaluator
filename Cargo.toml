@@ -1,0 +1,19 @@
+[package]
+name = "evaluator"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "evaluator"
+
+[dependencies]
+anyhow = "1.0.70"
+config = "0.13.3"
+rayon = "1.7.0"
+regex = "1.7.3"
+wait-timeout = "0.2.0"
+
