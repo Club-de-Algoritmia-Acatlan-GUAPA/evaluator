@@ -1,14 +1,14 @@
-use crate::types::{Status, TestCase, TestLibExitCodes};
+use anyhow::Result;
 
 use std::{
     fs,
-    io::{Write},
+    io::{Write, Read},
     process::{Command, Output, Stdio},
 };
 
-use anyhow::Result;
+use crate::types::{Status, TestCase, TestCaseResult, TestLibExitCodes};
 
-pub fn check_input(test_case: &TestCase, output: Output) -> Result<Status> {
+pub fn check_input(test_case: &TestCase, output: Output) -> Result<TestCaseResult> {
     let user_output = String::from_utf8_lossy(&output.stdout);
 
     let input_file_name = format!("./playground/judge_input_{}.in", test_case.id);
@@ -38,16 +38,20 @@ pub fn check_input(test_case: &TestCase, output: Output) -> Result<Status> {
 
     let status_code = exec_testlib_checker.wait()?.code();
 
-    match status_code {
-        Some(res) => {
-            match res.try_into() {
-                Ok(TestLibExitCodes::Accepted) => Ok(Status::Accepted),
-                Ok(TestLibExitCodes::WrongAnswer) => Ok(Status::WrongAnswer),
-                Ok(TestLibExitCodes::PartialExecution) => Ok(Status::PartialExecution),
-                Err(v) => Ok(Status::UnknownError(format!("found {v:?}"))),
-            }
+    let status = match status_code {
+        Some(res) => match res.try_into() {
+            Ok(TestLibExitCodes::Accepted) => Status::Accepted,
+            Ok(TestLibExitCodes::WrongAnswer) => Status::WrongAnswer,
+            Ok(TestLibExitCodes::PartialExecution) => Status::PartialExecution,
+            Err(v) => Status::UnknownError(format!("found {v:?}")),
         },
-        None => Ok(Status::UnknownError("testlib execution fails".to_string()))
-    }
+        None => Status::UnknownError("testlib execution fails".to_string()),
+    };
 
+    let ans = String::from_utf8_lossy(output.stdout.as_slice()).into_owned();
+    Ok(TestCaseResult {
+        status,
+        id: test_case.id,
+        output: Some(ans)
+    })
 }

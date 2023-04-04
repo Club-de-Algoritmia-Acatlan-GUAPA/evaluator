@@ -1,14 +1,10 @@
 #![feature(slice_group_by)]
 use evaluator::executor::ProblemExecutor;
 use evaluator::types::{Checker, Language, PolicyExecution, Problem, Submission, TestCase};
-
-use std::fs;
-
-use regex::Regex;
-
+use evaluator::utils;
 fn main() {
-   //TODO pre compile testlib 
-    let files = get_testcases_name();
+    //TODO pre compile testlib
+    let files = utils::get_testcases_names("./tests/sum_of_two_values/stdio".to_string());
     let mut test_cases = vec![];
 
     files.iter().enumerate().for_each(|(idx, elem)| {
@@ -16,8 +12,8 @@ fn main() {
             return;
         }
         test_cases.push(TestCase {
-            input_case: file_to_string(elem[0].clone()), // input testcase
-            output_case: file_to_string(elem[1].clone()), // input testcas
+            input_case: utils::file_to_string(elem[0].clone()), // input testcase
+            output_case: utils::file_to_string(elem[1].clone()), // input testcas
             id: idx as i32,
         });
     });
@@ -41,61 +37,66 @@ fn main() {
             test_cases: test_cases.clone(),
             checker: Some(get_checker()),
         };
-        let _ = executor.execute(submission, problem).unwrap();
-    }
-    // todo!("Move all of this to a test");
-}
-fn file_to_string(path: String) -> String {
-    let file = fs::read(path).unwrap();
-    String::from_utf8_lossy(&file).to_string()
-}
-fn get_testcases_name() -> Vec<Vec<String>> {
-    let paths = fs::read_dir("./tests/test_data/sum_of_two_values/").unwrap();
+        let res = executor.execute(submission, problem).unwrap();
+        for i in res.test_cases_results {
 
-    let mut name_files = vec![];
-    for path in paths {
-        let file_name = path.unwrap().path().display().to_string();
-        name_files.push(file_name);
-    }
-    let re = Regex::new(r"\d+").unwrap();
-
-    name_files.sort_by(|a, b| {
-        let (num, num2);
-        if let Some(cap) = re.find(a) {
-            num = Some(cap.as_str().parse::<i32>().unwrap());
-        } else {
-            num = None;
+        println!("{i:?}");
         }
-        if let Some(cap) = re.find(b) {
-            num2 = Some(cap.as_str().parse::<i32>().unwrap());
-        } else {
-            num2 = None;
-        }
-        num.cmp(&num2)
-    });
-    let mut res = name_files
-        .group_by(|a, b| {
-            let (num, num2);
-            if let Some(cap) = re.find(a) {
-                num = cap.as_str();
-            } else {
-                num = "";
-            }
-            if let Some(cap) = re.find(b) {
-                num2 = cap.as_str();
-            } else {
-                num2 = "";
-            }
-            num == num2
-        })
-        .map(Vec::from)
-        .collect::<Vec<_>>();
-
-    for i in res.iter_mut() {
-        i.sort();
+        
     }
-    res
+    //  todo!("Move all of this to a test");
 }
+// fn file_to_string(path: String) -> String {
+//     let file = fs::read(path).unwrap();
+//     String::from_utf8_lossy(&file).to_string()
+// }
+// fn get_testcases_name() -> Vec<Vec<String>> {
+//     let paths = fs::read_dir("./tests/test_data/sum_of_two_values/").unwrap();
+
+//     let mut name_files = vec![];
+//     for path in paths {
+//         let file_name = path.unwrap().path().display().to_string();
+//         name_files.push(file_name);
+//     }
+//     let re = Regex::new(r"\d+").unwrap();
+
+//     name_files.sort_by(|a, b| {
+//         let (num, num2);
+//         if let Some(cap) = re.find(a) {
+//             num = Some(cap.as_str().parse::<i32>().unwrap());
+//         } else {
+//             num = None;
+//         }
+//         if let Some(cap) = re.find(b) {
+//             num2 = Some(cap.as_str().parse::<i32>().unwrap());
+//         } else {
+//             num2 = None;
+//         }
+//         num.cmp(&num2)
+//     });
+//     let mut res = name_files
+//         .group_by(|a, b| {
+//             let (num, num2);
+//             if let Some(cap) = re.find(a) {
+//                 num = cap.as_str();
+//             } else {
+//                 num = "";
+//             }
+//             if let Some(cap) = re.find(b) {
+//                 num2 = cap.as_str();
+//             } else {
+//                 num2 = "";
+//             }
+//             num == num2
+//         })
+//         .map(Vec::from)
+//         .collect::<Vec<_>>();
+
+//     for i in res.iter_mut() {
+//         i.sort();
+//     }
+//     res
+// }
 
 fn get_code_runtime_error() -> String {
     r#"

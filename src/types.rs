@@ -1,5 +1,8 @@
-use crate::back_to_enum;
 use anyhow::Result;
+
+use crate::back_to_enum;
+use lazy_static::lazy_static;
+use std::collections::HashMap;
 use std::process::Output;
 
 #[derive(Debug, Clone)]
@@ -8,7 +11,7 @@ pub enum Language {
     Java,
     Cpp,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Status {
     Accepted,
     WrongAnswer,
@@ -16,6 +19,16 @@ pub enum Status {
     PartialExecution,
     RuntimeError,
     UnknownError(String),
+}
+
+lazy_static! {
+    pub static ref STATUS_PRECEDENCE: HashMap<Status, i32> = HashMap::from([
+        (Status::Accepted, 0),
+        (Status::PartialExecution, 1),
+        (Status::WrongAnswer, 2),
+        (Status::TimeLimitExceeded, 3),
+        (Status::RuntimeError, 4),
+    ]);
 }
 
 back_to_enum! {
@@ -43,6 +56,12 @@ pub struct TestCase {
     pub id: i32,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TestCaseResult {
+    pub status: Status,
+    pub id: i32,
+    pub output: Option<String>,
+}
 #[derive(Debug, Clone)]
 pub struct Checker {
     pub checker: String,
@@ -72,4 +91,10 @@ pub struct Problem {
     pub system_policy: Option<SystemPolicy>,
     pub test_cases: Vec<TestCase>,
     pub checker: Option<Checker>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct ProblemExecutorResult {
+    pub overall_result: Status,
+    pub test_cases_results: Vec<TestCaseResult>,
 }

@@ -40,7 +40,7 @@ impl CodeExecutor for Python3 {
         {
             return Ok(CodeExecutorResult {
                 err: Some(Status::RuntimeError),
-                output: None,
+                output: None
             });
         }
 
@@ -76,7 +76,11 @@ impl CodeExecutor for Python3 {
         if !status.success() {
             return Ok(CodeExecutorResult {
                 err: Some(Status::RuntimeError),
-                output: None,
+                output: Some(Output { 
+                    status: status,
+                    stdout: stdout.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>(),
+                    stderr: vec![]
+                }),
             });
         }
         if let Some(v) = child.stderr {

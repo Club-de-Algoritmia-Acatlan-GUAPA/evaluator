@@ -10,8 +10,12 @@ use std::{
 };
 
 use crate::checker::check_input;
-use crate::types::{CodeExecutor, CodeExecutorResult, Language, Problem, Status, Submission};
+use crate::types::{
+    CodeExecutor, CodeExecutorResult, Language, Problem, ProblemExecutorResult, Status, Submission,
+    TestCaseResult, STATUS_PRECEDENCE,
+};
 
+#[derive(Debug,Eq, PartialEq)]
 pub struct ProblemExecutor;
 impl Default for ProblemExecutor {
     fn default() -> Self {
@@ -22,7 +26,11 @@ impl ProblemExecutor {
     pub fn new() -> Self {
         Self {}
     }
-    pub fn execute(&self, submission: Submission, problem: Problem) -> Result<Status> {
+    pub fn execute(
+        &self,
+        submission: Submission,
+        problem: Problem,
+    ) -> Result<ProblemExecutorResult> {
         let code_executor = match submission.language {
             Language::Python3 => {
                 use crate::languages::python_3;
@@ -31,7 +39,6 @@ impl ProblemExecutor {
             _ => todo!(),
         };
 
-        // let mut test_status : Vec<Result<Status>> = vec![];
         let mutexed_tests = Arc::new(Mutex::new(Vec::new()));
 
         if let Some(checker) = problem.checker {
@@ -55,9 +62,13 @@ impl ProblemExecutor {
 
             match code_executor.execute(test_case) {
                 Ok(CodeExecutorResult { err, output }) => {
-                    if let Some(err)  = err {
+                    if let Some(err) = err {
                         // dbg!(&err);
-                        mutexed_tests.lock().unwrap().push(err);
+                        mutexed_tests.lock().unwrap().push(TestCaseResult {
+                            status: err,
+                            id: test_case.id,
+                            output: None
+                        });
                         return;
                     }
                     let status = check_input(test_case, output.unwrap()).expect("F");
@@ -65,7 +76,6 @@ impl ProblemExecutor {
 
                     let _elapsed_time = end_time - start_time;
                     // println!("Elapsed time {idx}: {:?}", elapsed_time.as_millis());
-
                     mutexed_tests.lock().unwrap().push(status);
                 }
                 Err(v) => {
@@ -76,10 +86,24 @@ impl ProblemExecutor {
 
         let bind = mutexed_tests.lock().unwrap();
 
-        let res = bind.iter().collect::<Vec<_>>();
-        for ele in res.iter() {
-            println!("{ele:?}");
-        }
-        Ok(Status::Accepted)
+        let overall_result_testcase = bind.iter().max_by_key(
+            |testcase_result| {
+                STATUS_PRECEDENCE
+                    .get(&testcase_result.status)
+                    .unwrap_or(&10)
+                    + 0
+            }, // remove reference
+        );
+
+        let overall_result = if let Some(result) = overall_result_testcase {
+            result.status.clone()
+        } else {
+            Status::UnknownError("Status can't be infered".to_string())
+        };
+
+        Ok(ProblemExecutorResult {
+            overall_result,
+            test_cases_results: bind.to_owned(),
+        })
     }
 }
