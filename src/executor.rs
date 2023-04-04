@@ -15,7 +15,7 @@ use crate::types::{
     TestCaseResult, STATUS_PRECEDENCE,
 };
 
-#[derive(Debug,Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ProblemExecutor;
 impl Default for ProblemExecutor {
     fn default() -> Self {
@@ -53,8 +53,7 @@ impl ProblemExecutor {
                 .stdout(Stdio::piped())
                 .stdin(Stdio::piped())
                 .spawn()?;
-            let out = comp.wait_with_output()?;
-            println!("Compilar {out:?}");
+            let _ = comp.wait_with_output()?; // output from compiling the checker
         }
 
         problem.test_cases.par_iter().for_each(|test_case| {
@@ -63,11 +62,10 @@ impl ProblemExecutor {
             match code_executor.execute(test_case) {
                 Ok(CodeExecutorResult { err, output }) => {
                     if let Some(err) = err {
-                        // dbg!(&err);
                         mutexed_tests.lock().unwrap().push(TestCaseResult {
                             status: err,
                             id: test_case.id,
-                            output: None
+                            output,
                         });
                         return;
                     }
@@ -75,7 +73,6 @@ impl ProblemExecutor {
                     let end_time = Instant::now();
 
                     let _elapsed_time = end_time - start_time;
-                    // println!("Elapsed time {idx}: {:?}", elapsed_time.as_millis());
                     mutexed_tests.lock().unwrap().push(status);
                 }
                 Err(v) => {
@@ -91,12 +88,11 @@ impl ProblemExecutor {
                 STATUS_PRECEDENCE
                     .get(&testcase_result.status)
                     .unwrap_or(&10)
-                    + 0
-            }, // remove reference
+            },
         );
 
         let overall_result = if let Some(result) = overall_result_testcase {
-            result.status.clone()
+            result.status.to_owned()
         } else {
             Status::UnknownError("Status can't be infered".to_string())
         };

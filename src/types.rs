@@ -60,7 +60,7 @@ pub struct TestCase {
 pub struct TestCaseResult {
     pub status: Status,
     pub id: i32,
-    pub output: Option<String>,
+    pub output: Option<Output>,
 }
 #[derive(Debug, Clone)]
 pub struct Checker {

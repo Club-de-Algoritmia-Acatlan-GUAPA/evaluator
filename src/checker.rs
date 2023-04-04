@@ -2,8 +2,9 @@ use anyhow::Result;
 
 use std::{
     fs,
-    io::{Write, Read},
-    process::{Command, Output, Stdio},
+    io::{Read, Write},
+    os::unix::process::ExitStatusExt,
+    process::{Command, ExitStatus, Output, Stdio},
 };
 
 use crate::types::{Status, TestCase, TestCaseResult, TestLibExitCodes};
@@ -26,7 +27,7 @@ pub fn check_input(test_case: &TestCase, output: Output) -> Result<TestCaseResul
     judge_output_file.write_all(test_case.output_case.as_bytes())?;
     let judge_output_file_name = format!("judge_output_{}.out", test_case.id);
 
-    let mut exec_testlib_checker = Command::new("./checker")
+    let mut child = Command::new("./checker")
         .current_dir("./playground")
         .stdin(Stdio::piped())
         .arg(input_file_name)
@@ -36,7 +37,7 @@ pub fn check_input(test_case: &TestCase, output: Output) -> Result<TestCaseResul
         .stderr(Stdio::piped())
         .spawn()?;
 
-    let status_code = exec_testlib_checker.wait()?.code();
+    let status_code = child.wait()?.code();
 
     let status = match status_code {
         Some(res) => match res.try_into() {
@@ -48,10 +49,23 @@ pub fn check_input(test_case: &TestCase, output: Output) -> Result<TestCaseResul
         None => Status::UnknownError("testlib execution fails".to_string()),
     };
 
-    let ans = String::from_utf8_lossy(output.stdout.as_slice()).into_owned();
     Ok(TestCaseResult {
         status,
         id: test_case.id,
-        output: Some(ans)
+        output: Some(Output {
+            status: ExitStatus::from_raw(status_code.unwrap()),
+            stdout: child
+                .stdout
+                .unwrap()
+                .bytes()
+                .filter_map(|x| x.ok())
+                .collect(),
+            stderr: child
+                .stderr
+                .unwrap()
+                .bytes()
+                .filter_map(|x| x.ok())
+                .collect(),
+        }),
     })
 }

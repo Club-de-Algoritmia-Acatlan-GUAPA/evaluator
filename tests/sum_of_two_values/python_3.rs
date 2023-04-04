@@ -1,11 +1,15 @@
 use evaluator::executor::ProblemExecutor;
-use evaluator::types::Status::*;
 use evaluator::types::{
-    Checker, Language, PolicyExecution, Problem, ProblemExecutorResult, Submission, TestCase,
-    TestCaseResult,
+    Checker, Language, PolicyExecution, Problem, Submission, TestCase, TestCaseResult,
 };
 use evaluator::utils;
+use expected_response::{
+    get_expected_accepted, get_expected_partial_runtime_error, get_expected_runtime_error,
+    get_expected_time_limit,
+};
+use pretty_assertions::assert_eq;
 
+use crate::sum_of_two_values::expected_response;
 #[test]
 fn test_runtime_error() {
     let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
@@ -21,145 +25,20 @@ fn test_runtime_error() {
         test_cases: test_cases.clone(),
         checker: Some(get_checker()),
     };
-    let expected = ProblemExecutorResult {
-        overall_result: RuntimeError,
-        test_cases_results: sort_by_id(vec![
-            TestCaseResult {
-                status: RuntimeError,
-                id: 12,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 3,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 18,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 6,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 1,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 0,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 9,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 2,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 19,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 13,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 5,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 4,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 10,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 15,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 7,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 11,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 14,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 20,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 21,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 22,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 17,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 8,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 16,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 23,
-                output: None,
-            },
-        ])
-    };
+    let expected = get_expected_runtime_error();
     let executor = ProblemExecutor::new();
     let mut res = executor.execute(submission, problem).unwrap();
     res.test_cases_results = sort_by_id(res.test_cases_results);
-
+    res.test_cases_results = output_to_none(sort_by_id(res.test_cases_results));
     assert_eq!(res, expected);
 }
 
 #[test]
 fn test_partial_runtime_error() {
-
     let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
     let submission = Submission {
         language: Language::Python3,
-        code: get_code_runtime_error(),
+        code: get_code_runtime_error_in_some_cases(),
     };
     let problem = Problem {
         id: "123123".to_string(),
@@ -169,388 +48,61 @@ fn test_partial_runtime_error() {
         test_cases: test_cases.clone(),
         checker: Some(get_checker()),
     };
-    let expected = ProblemExecutorResult {
-        overall_result: RuntimeError,
-        test_cases_results: sort_by_id(vec![
-            TestCaseResult {
-                status: RuntimeError,
-                id: 3,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 4,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 12,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 6,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 13,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 9,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 14,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 2,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 15,
-                output: None,
-            },
-            TestCaseResult {
-                status: Accepted,
-                id: 1,
-                output: None,
-            },
-            TestCaseResult {
-                status: Accepted,
-                id: 0,
-                output: None,
-            },
-            TestCaseResult {
-                status: Accepted,
-                id: 18,
-                output: None,
-            },
-            TestCaseResult {
-                status: Accepted,
-                id: 5,
-                output: None,
-            },
-            TestCaseResult {
-                status: Accepted,
-                id: 16,
-                output: None,
-            },
-            TestCaseResult {
-                status: Accepted,
-                id: 7,
-                output: None,
-            },
-            TestCaseResult {
-                status: Accepted,
-                id: 19,
-                output: None,
-            },
-            TestCaseResult {
-                status: Accepted,
-                id: 17,
-                output: None,
-            },
-            TestCaseResult {
-                status: Accepted,
-                id: 10,
-                output: None,
-            },
-            TestCaseResult {
-                status: Accepted,
-                id: 11,
-                output: None,
-            },
-            TestCaseResult {
-                status: RuntimeError,
-                id: 8,
-                output: None,
-            },
-            TestCaseResult {
-                status: Accepted,
-                id: 21,
-                output: None,
-            },
-            TestCaseResult {
-                status: Accepted,
-                id: 22,
-                output: None,
-            },
-            TestCaseResult {
-                status: Accepted,
-                id: 23,
-                output: None,
-            },
-            TestCaseResult {
-                status: TimeLimitExceeded,
-                id: 20,
-                output: None,
-            },
-        ]),
-    };
+    let expected = get_expected_partial_runtime_error();
     let executor = ProblemExecutor::new();
     let mut res = executor.execute(submission, problem).unwrap();
     res.test_cases_results = sort_by_id(res.test_cases_results);
+    res.test_cases_results = output_to_none(sort_by_id(res.test_cases_results));
     assert_eq!(res, expected);
-    // let _ = ProblemExecutorResult {
-    //     overall_result: TimeLimitExceeded,
-    //     test_cases_results: [
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 2,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 12,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 3,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 1,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 0,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 7,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 6,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 13,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 9,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 18,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 4,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 5,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 14,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 19,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 8,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 16,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 17,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 15,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 21,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 10,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 11,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 22,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 23,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: TimeLimitExceeded,
-    //             id: 20,
-    //             output: None,
-    //         },
-    //     ],
-    // };
-    // let _ = ProblemExecutorResult {
-    //     overall_result: Accepted,
-    //     test_cases_results: [
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 18,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 1,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 3,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 0,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 13,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 12,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 6,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 19,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 4,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 2,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 15,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 14,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 17,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 16,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 5,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 7,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 8,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 21,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 22,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 23,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 10,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 20,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 9,
-    //             output: None,
-    //         },
-    //         TestCaseResult {
-    //             status: Accepted,
-    //             id: 11,
-    //             output: None,
-    //         },
-    //     ],
-    // };
 }
 
-fn get_testcases(path : String) -> Vec<TestCase> {
+#[test]
+fn test_time_limit_exceeded() {
+    let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
+    let submission = Submission {
+        language: Language::Python3,
+        code: get_code_time_limit(),
+    };
+    let problem = Problem {
+        id: "123123".to_string(),
+        name: Some("Sum of Two Values".to_string()),
+        policy_execution: PolicyExecution::Checker,
+        system_policy: None,
+        test_cases: test_cases.clone(),
+        checker: Some(get_checker()),
+    };
+    let expected = get_expected_time_limit();
+    let executor = ProblemExecutor::new();
+    let mut res = executor.execute(submission, problem).unwrap();
+    res.test_cases_results = sort_by_id(res.test_cases_results);
+    res.test_cases_results = output_to_none(sort_by_id(res.test_cases_results));
+    assert_eq!(res, expected);
+}
+
+#[test]
+fn test_accepted() {
+    let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
+    let submission = Submission {
+        language: Language::Python3,
+        code: get_code_accepted(),
+    };
+    let problem = Problem {
+        id: "123123".to_string(),
+        name: Some("Sum of Two Values".to_string()),
+        policy_execution: PolicyExecution::Checker,
+        system_policy: None,
+        test_cases: test_cases.clone(),
+        checker: Some(get_checker()),
+    };
+    let expected = get_expected_accepted();
+    let executor = ProblemExecutor::new();
+    let mut res = executor.execute(submission, problem).unwrap();
+    res.test_cases_results = sort_by_id(res.test_cases_results);
+    res.test_cases_results = output_to_none(sort_by_id(res.test_cases_results));
+    assert_eq!(res, expected);
+}
+
+fn get_testcases(path: String) -> Vec<TestCase> {
     let files = utils::get_testcases_names(path);
     let mut test_cases = vec![];
     files.iter().enumerate().for_each(|(idx, elem)| {
@@ -567,8 +119,13 @@ fn get_testcases(path : String) -> Vec<TestCase> {
     test_cases
 }
 
-fn sort_by_id(mut arr : Vec<TestCaseResult>) -> Vec<TestCaseResult> {
+fn sort_by_id(mut arr: Vec<TestCaseResult>) -> Vec<TestCaseResult> {
     arr.sort_by(|a, b| a.id.cmp(&b.id));
+    arr
+}
+
+fn output_to_none(mut arr: Vec<TestCaseResult>) -> Vec<TestCaseResult> {
+    arr.iter_mut().for_each(|elem| elem.output = None);
     arr
 }
 fn get_code_runtime_error() -> String {

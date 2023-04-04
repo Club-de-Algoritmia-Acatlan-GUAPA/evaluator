@@ -2,7 +2,8 @@ use anyhow::Result;
 use std::fs;
 use std::io::{Read, Write};
 
-use std::process::{Command, Output, Stdio};
+use std::os::unix::process::ExitStatusExt;
+use std::process::{Command, ExitStatus, Output, Stdio};
 use std::time::{Duration, Instant};
 
 use crate::types::{CodeExecutor, CodeExecutorResult, Status, TestCase};
@@ -15,23 +16,37 @@ impl Python3 {
     pub fn new(content: String) -> Result<Self> {
         let mut file = fs::File::create("./playground/foo.py")?;
         file.write_all(content.as_bytes())?;
-        let file_name = String::from("foo.py");
+
         Ok(Self {
             file_ending: "py".to_string(),
-            file_for_execution: file_name,
+            file_for_execution: String::from("foo.py"),
         })
     }
 }
 impl CodeExecutor for Python3 {
     fn execute(&self, testcase: &TestCase) -> Result<CodeExecutorResult> {
-        let mut child = Command::new("python3")
+        let mut command = Command::new("python3");
+
+        let child = command
             .current_dir("./playground")
             .arg(&self.file_for_execution)
             .stdout(Stdio::piped())
             .stdin(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .expect("Se murio");
+            .stderr(Stdio::piped());
+
+        let mut child = match child.spawn() {
+            Ok(child) => child,
+            Err(v) => {
+                return Ok(CodeExecutorResult {
+                    err: Some(Status::RuntimeError),
+                    output: Some(Output {
+                        status: ExitStatus::from_raw(1),
+                        stdout: v.to_string().as_bytes().to_vec(),
+                        stderr: vec![],
+                    }),
+                });
+            }
+        };
 
         let child_stdin = child.stdin.as_mut().expect("F");
         if child_stdin
@@ -40,10 +55,23 @@ impl CodeExecutor for Python3 {
         {
             return Ok(CodeExecutorResult {
                 err: Some(Status::RuntimeError),
-                output: None
+                output: Some(Output {
+                    status: ExitStatus::from_raw(1),
+                    stdout: child
+                        .stdout
+                        .unwrap()
+                        .bytes()
+                        .filter_map(|x| x.ok())
+                        .collect::<Vec<_>>(),
+                    stderr: child
+                        .stderr
+                        .unwrap()
+                        .bytes()
+                        .filter_map(|x| x.ok())
+                        .collect::<Vec<_>>(),
+                }),
             });
         }
-
         let one_sec = Duration::from_secs(1);
         let now = Instant::now();
         loop {
@@ -76,10 +104,10 @@ impl CodeExecutor for Python3 {
         if !status.success() {
             return Ok(CodeExecutorResult {
                 err: Some(Status::RuntimeError),
-                output: Some(Output { 
-                    status: status,
+                output: Some(Output {
+                    status,
                     stdout: stdout.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>(),
-                    stderr: vec![]
+                    stderr: vec![],
                 }),
             });
         }
