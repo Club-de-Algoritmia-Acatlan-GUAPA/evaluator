@@ -1,5 +1,5 @@
 use regex::Regex;
-
+use slice_group_by::GroupBy;
 use std::fs;
 // use crate::types::{Checker, Language, PolicyExecution, Problem, Submission, TestCase};
 
@@ -32,7 +32,8 @@ pub fn get_testcases_names(path: String) -> Vec<Vec<String>> {
         num.cmp(&num2)
     });
     let mut res = name_files
-        .group_by(|a, b| {
+        .as_slice()
+        .linear_group_by(|a, b| {
             let (num, num2);
             if let Some(cap) = re.find(a) {
                 num = cap.as_str();

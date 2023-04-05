@@ -12,6 +12,7 @@ name = "evaluator"
 
 [dependencies]
 anyhow = "1.0.70"
+slice-group-by = "0.3.0"
 config = "0.13.3"
 lazy_static = "1.4.0"
 rayon = "1.7.0"

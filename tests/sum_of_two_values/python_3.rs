@@ -2,7 +2,6 @@ use evaluator::executor::ProblemExecutor;
 use evaluator::types::{
     Checker, Language, PolicyExecution, Problem, Submission, TestCase, TestCaseResult,
 };
-use evaluator::utils;
 use expected_response::{
     get_expected_accepted, get_expected_partial_runtime_error, get_expected_runtime_error,
     get_expected_time_limit,
@@ -10,6 +9,7 @@ use expected_response::{
 use pretty_assertions::assert_eq;
 
 use crate::sum_of_two_values::expected_response;
+use evaluator::utils::{file_to_string, get_testcases_names};
 #[test]
 fn test_runtime_error() {
     let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
@@ -103,15 +103,15 @@ fn test_accepted() {
 }
 
 fn get_testcases(path: String) -> Vec<TestCase> {
-    let files = utils::get_testcases_names(path);
+    let files = get_testcases_names(path);
     let mut test_cases = vec![];
     files.iter().enumerate().for_each(|(idx, elem)| {
         if elem.len() <= 1 {
             return;
         }
         test_cases.push(TestCase {
-            input_case: utils::file_to_string(elem[0].clone()), // input testcase
-            output_case: utils::file_to_string(elem[1].clone()), // input testcas
+            input_case: file_to_string(elem[0].clone()), // input testcase
+            output_case: file_to_string(elem[1].clone()), // input testcas
             id: idx as i32,
         });
     });

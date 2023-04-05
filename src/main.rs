@@ -1,4 +1,3 @@
-#![feature(slice_group_by)]
 use evaluator::executor::ProblemExecutor;
 use evaluator::types::{Checker, Language, PolicyExecution, Problem, Submission, TestCase};
 use evaluator::utils;

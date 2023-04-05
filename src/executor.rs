@@ -83,13 +83,11 @@ impl ProblemExecutor {
 
         let bind = mutexed_tests.lock().unwrap();
 
-        let overall_result_testcase = bind.iter().max_by_key(
-            |testcase_result| {
-                STATUS_PRECEDENCE
-                    .get(&testcase_result.status)
-                    .unwrap_or(&10)
-            },
-        );
+        let overall_result_testcase = bind.iter().max_by_key(|testcase_result| {
+            STATUS_PRECEDENCE
+                .get(&testcase_result.status)
+                .unwrap_or(&10)
+        });
 
         let overall_result = if let Some(result) = overall_result_testcase {
             result.status.to_owned()
