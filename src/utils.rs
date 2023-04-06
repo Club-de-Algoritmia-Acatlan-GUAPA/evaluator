@@ -1,7 +1,9 @@
 use regex::Regex;
 use slice_group_by::GroupBy;
+
 use std::fs;
-// use crate::types::{Checker, Language, PolicyExecution, Problem, Submission, TestCase};
+
+use crate::types::TestCase;
 
 pub fn file_to_string(path: String) -> String {
     let file = fs::read(path).unwrap();
@@ -54,4 +56,21 @@ pub fn get_testcases_names(path: String) -> Vec<Vec<String>> {
         i.sort();
     }
     res
+}
+
+pub fn get_testcases(path: String) -> Vec<TestCase> {
+    let files = get_testcases_names(path);
+    let mut test_cases = vec![];
+    files.iter().enumerate().for_each(|(idx, elem)| {
+        if elem.len() <= 1 {
+            return;
+        }
+        test_cases.push(TestCase {
+            input_case: file_to_string(elem[0].clone()), // input testcase
+            output_case: file_to_string(elem[1].clone()), // input testcas
+            id: idx as i32,
+        });
+    });
+
+    test_cases
 }

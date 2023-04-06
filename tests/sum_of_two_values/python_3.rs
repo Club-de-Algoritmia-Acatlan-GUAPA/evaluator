@@ -1,6 +1,6 @@
 use evaluator::executor::ProblemExecutor;
 use evaluator::types::{
-    Checker, Language, PolicyExecution, Problem, Submission, TestCase, TestCaseResult,
+    Checker, Language, PolicyExecution, Problem, Submission, TestCaseResult,
 };
 use expected_response::{
     get_expected_accepted, get_expected_partial_runtime_error, get_expected_runtime_error,
@@ -9,7 +9,7 @@ use expected_response::{
 use pretty_assertions::assert_eq;
 
 use crate::sum_of_two_values::expected_response;
-use evaluator::utils::{file_to_string, get_testcases_names};
+use evaluator::utils::{get_testcases};
 #[test]
 fn test_runtime_error() {
     let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
@@ -102,23 +102,6 @@ fn test_accepted() {
     assert_eq!(res, expected);
 }
 
-fn get_testcases(path: String) -> Vec<TestCase> {
-    let files = get_testcases_names(path);
-    let mut test_cases = vec![];
-    files.iter().enumerate().for_each(|(idx, elem)| {
-        if elem.len() <= 1 {
-            return;
-        }
-        test_cases.push(TestCase {
-            input_case: file_to_string(elem[0].clone()), // input testcase
-            output_case: file_to_string(elem[1].clone()), // input testcas
-            id: idx as i32,
-        });
-    });
-
-    test_cases
-}
-
 fn sort_by_id(mut arr: Vec<TestCaseResult>) -> Vec<TestCaseResult> {
     arr.sort_by(|a, b| a.id.cmp(&b.id));
     arr
@@ -192,7 +175,7 @@ def solve():
     l , r = 0, n - 1
     while l < r:
         if arr[l][0] + arr[r][0] == target:
-            print(arr[l][1], arr[r][1])
+            print(arr[l][1], arr[r][1],end='')
             return
         elif arr[l][0] + arr[r][0]  > target :
             r -= 1
