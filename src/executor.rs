@@ -11,9 +11,11 @@ use std::{
 
 use crate::checker::check_input;
 use crate::types::{
-    CodeExecutor, CodeExecutorResult, Language, Problem, ProblemExecutorResult, Status, Submission,
+    Language, Problem, ProblemExecutorResult, Status, Submission,
     TestCaseResult, STATUS_PRECEDENCE,
 };
+use crate::code_executor::{ CodeExecutor, CodeExecutorResult };
+
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ProblemExecutor;
@@ -31,13 +33,17 @@ impl ProblemExecutor {
         submission: Submission,
         problem: Problem,
     ) -> Result<ProblemExecutorResult> {
-        let code_executor = match submission.language {
+        let mut code_executor = match submission.language {
             Language::Python3 => {
                 use crate::languages::python_3;
-                python_3::Python3::new(submission.code)?
+                CodeExecutor::<python_3::Python3>::new(submission.id)
             }
             _ => todo!(),
         };
+
+        code_executor.code(submission.code);
+
+        code_executor.prepare_code_env()?;
 
         let mutexed_tests = Arc::new(Mutex::new(Vec::new()));
 

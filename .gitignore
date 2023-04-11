@@ -2,3 +2,4 @@
 /playground/*
 
 !playground/testlib.h
+.vscode/

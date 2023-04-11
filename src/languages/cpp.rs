@@ -1,35 +1,36 @@
 use anyhow::Result;
-use std::fs;
-use std::io::{Read, Write};
 
-use std::os::unix::process::ExitStatusExt;
-use std::process::{Command, ExitStatus, Output, Stdio};
-use std::time::{Duration, Instant};
+use std::{
+    io::Read,
+    os::unix::process::ExitStatusExt,
+    process::{Command, ExitStatus, Output, Stdio},
+};
 
-use crate::types::{CodeExecutor, CodeExecutorResult, Status, TestCase};
+use crate::code_executor::{CodeExecutorResult, Language};
+use crate::types::Status;
 
 pub struct Cpp {
     pub file_ending: String,
-    pub file_for_execution: String, // TODO : convert to OsStr
-    pub executable_name: String, // TODO : convert to OsStr
+    pub file_for_execution: String,
+    pub executable_name: String,
+    pub id: i32,
 }
-impl Cpp {
-    pub fn new(content: String) -> Result<Self> {
-        let mut file = fs::File::create("./playground/foo.cpp")?;
-        file.write_all(content.as_bytes())?;
 
-        Ok(Self {
-            file_ending: "cpp".to_string(),
-            file_for_execution: String::from("foo.cpp"),
-            executable_name: String::from("foo"),
-        })
+impl Language for Cpp {
+    fn new_lang(id: i32) -> Self {
+        let file_ending = "cpp".to_string();
+
+        Self {
+            id,
+            file_for_execution: format!("{}.{}", id, file_ending),
+            file_ending,
+            executable_name: format!("{}", id),
+        }
     }
-}
-impl CodeExecutor for Cpp {
-    fn execute(&self, testcase: &TestCase) -> Result<CodeExecutorResult> {
+    fn prepare(&self) -> Result<CodeExecutorResult> {
         let mut command = Command::new("g++-12");
 
-        // create ecxecutable
+        // create executable
         let child = command
             .current_dir("./playground")
             .arg("-std=c++1z")
@@ -53,128 +54,52 @@ impl CodeExecutor for Cpp {
                 });
             }
         };
-        // run executable
-        let comp_res = child.wait()?;
-        if !comp_res.success() {
-            dbg!(&child);
-            return Ok(CodeExecutorResult {
-                err: Some(Status::RuntimeError),
-                output: Some(Output {
-                    status: ExitStatus::from_raw(1),
-                    stdout: child.stdout.unwrap().bytes().filter_map(|x| x.ok()).collect::<Vec<_>>(),
-                    stderr: child.stderr.unwrap().bytes().filter_map(|x| x.ok()).collect::<Vec<_>>(),
-                }),
-            });
-        }
-        let mut command = Command::new(format!("./{}",self.executable_name));
-
-        let child = command
-            .current_dir("./playground")
-            .stdout(Stdio::piped())
-            .stdin(Stdio::piped())
-            .stderr(Stdio::piped());
-
-        let mut child = match child.spawn() {
-            Ok(child) => child,
-            Err(v) => {
-                dbg!(&v);
-                return Ok(CodeExecutorResult {
-                    err: Some(Status::RuntimeError),
-                    output: Some(Output {
-                        status: ExitStatus::from_raw(1),
-                        stdout: v.to_string().as_bytes().to_vec(),
-                        stderr: vec![],
-                    }),
-                });
-            }
-        };
-
-        let child_stdin = child.stdin.as_mut().expect("F");
-        if child_stdin
-            .write_all(testcase.input_case.as_bytes())
-            .is_err()
-        {
-            return Ok(CodeExecutorResult {
-                err: Some(Status::RuntimeError),
-                output: Some(Output {
-                    status: ExitStatus::from_raw(1),
-                    stdout: child
-                        .stdout
-                        .unwrap()
-                        .bytes()
-                        .filter_map(|x| x.ok())
-                        .collect::<Vec<_>>(),
-                    stderr: child
-                        .stderr
-                        .unwrap()
-                        .bytes()
-                        .filter_map(|x| x.ok())
-                        .collect::<Vec<_>>(),
-                }),
-            });
-        }
-        let one_sec = Duration::from_secs(1);
-        let now = Instant::now();
-        loop {
-            let result = child.try_wait();
-
-            match result {
-                Ok(Some(_)) => {
-                    break;
-                }
-                Ok(None) => {
-                    if now.elapsed() > one_sec {
-                        child.kill().unwrap();
-                        child.kill()?;
-                        return Ok(CodeExecutorResult {
-                            err: Some(Status::TimeLimitExceeded),
-                            output: None,
-                        });
-                    }
-                }
-                Err(e) => {
-                    panic!("Error: {e}");
-                }
-            }
-        }
-
-        let status = child.wait().unwrap();
-        let stdout = child.stdout.unwrap();
-        let mut stderr = vec![];
-
+        // wait for any other possible runtime error
+        let status = child.wait()?;
+        let stdout = child.stdout.map_or_else(Vec::new, |stdout| {
+            stdout.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>()
+        });
+        let stderr = child.stderr.map_or_else(Vec::new, |stdout| {
+            stdout.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>()
+        });
         if !status.success() {
             return Ok(CodeExecutorResult {
                 err: Some(Status::RuntimeError),
                 output: Some(Output {
-                    status,
-                    stdout: stdout.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>(),
-                    stderr: vec![],
+                    status: ExitStatus::from_raw(1),
+                    stdout,
+                    stderr,
                 }),
             });
         }
-        if let Some(v) = child.stderr {
-            stderr = v.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>();
-        }
-
         Ok(CodeExecutorResult {
             err: None,
             output: Some(Output {
                 status,
-                stdout: stdout.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>(),
+                stdout,
                 stderr,
             }),
         })
     }
+
+    fn execute_command(&self) -> std::process::Command {
+        Command::new(format!("./{}", self.executable_name))
+    }
+
+    fn get_file_type(&self) -> String {
+        self.file_ending.clone()
+    }
 }
 
-#[test] 
-pub fn test_execute_function()->Result<()> { 
+#[test]
+pub fn test_execute_function() -> Result<()> {
+    use crate::code_executor::CodeExecutor;
     use crate::utils::get_testcases;
     let code = r#"
     #include<bits/stdc++.h>
  
     using namespace std;
-    // accepted
+    // TLE
     void solve() {
         map<int, int>m;
         int n , target;
@@ -195,12 +120,13 @@ pub fn test_execute_function()->Result<()> {
        solve();
     }
     "#;
-    
+
     let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
 
-    let executor  = Cpp::new(code.to_string())?;
-    let val = executor.execute(&test_cases[6]).unwrap();
-    dbg!(val);
+    let mut executor: CodeExecutor<Cpp> = CodeExecutor::new(1232);
+    executor.code(code.to_string());
+    let _ = executor.prepare_code_env()?;
+    let res = executor.execute(&test_cases[21]);
+    let _ = dbg!(res);
     Ok(())
-
 }

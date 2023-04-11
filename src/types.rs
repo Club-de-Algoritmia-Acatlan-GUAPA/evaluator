@@ -80,6 +80,7 @@ pub trait CodeExecutor {
 pub struct Submission {
     pub language: Language,
     pub code: String,
+    pub id : i32
 }
 
 #[derive(Debug, Clone)]

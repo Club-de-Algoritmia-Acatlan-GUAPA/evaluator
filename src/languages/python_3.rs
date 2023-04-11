@@ -1,127 +1,39 @@
 use anyhow::Result;
-use std::fs;
-use std::io::{Read, Write};
 
-use std::os::unix::process::ExitStatusExt;
-use std::process::{Command, ExitStatus, Output, Stdio};
-use std::time::{Duration, Instant};
+use std::process::Command;
 
-use crate::types::{CodeExecutor, CodeExecutorResult, Status, TestCase};
+// use crate::types::{CodeExecutor, CodeExecutorResult, Status, TestCase};
+use crate::code_executor::{Language, CodeExecutorResult};
 
 pub struct Python3 {
     pub file_ending: String,
     pub file_for_execution: String, // TODO : convert to OsStr
+    pub id: i32,
 }
-impl Python3 {
-    pub fn new(content: String) -> Result<Self> {
-        let mut file = fs::File::create("./playground/foo.py")?;
-        file.write_all(content.as_bytes())?;
 
-        Ok(Self {
-            file_ending: "py".to_string(),
-            file_for_execution: String::from("foo.py"),
-        })
+impl Language for Python3 {
+    fn new_lang(id: i32) -> Self {
+        let file_ending = "cpp".to_string();
+
+        Self {
+            id,
+            file_for_execution: format!("{}.{}", id, file_ending),
+            file_ending,
+        }
     }
-}
-impl CodeExecutor for Python3 {
-    fn execute(&self, testcase: &TestCase) -> Result<CodeExecutorResult> {
-        let mut command = Command::new("python3");
-
-        let child = command
-            .current_dir("./playground")
-            .arg(&self.file_for_execution)
-            .stdout(Stdio::piped())
-            .stdin(Stdio::piped())
-            .stderr(Stdio::piped());
-
-        let mut child = match child.spawn() {
-            Ok(child) => child,
-            Err(v) => {
-                return Ok(CodeExecutorResult {
-                    err: Some(Status::RuntimeError),
-                    output: Some(Output {
-                        status: ExitStatus::from_raw(1),
-                        stdout: v.to_string().as_bytes().to_vec(),
-                        stderr: vec![],
-                    }),
-                });
-            }
-        };
-
-        let child_stdin = child.stdin.as_mut().expect("F");
-        if child_stdin
-            .write_all(testcase.input_case.as_bytes())
-            .is_err()
-        {
-            return Ok(CodeExecutorResult {
-                err: Some(Status::RuntimeError),
-                output: Some(Output {
-                    status: ExitStatus::from_raw(1),
-                    stdout: child
-                        .stdout
-                        .unwrap()
-                        .bytes()
-                        .filter_map(|x| x.ok())
-                        .collect::<Vec<_>>(),
-                    stderr: child
-                        .stderr
-                        .unwrap()
-                        .bytes()
-                        .filter_map(|x| x.ok())
-                        .collect::<Vec<_>>(),
-                }),
-            });
-        }
-        let one_sec = Duration::from_secs(1);
-        let now = Instant::now();
-        loop {
-            let result = child.try_wait();
-
-            match result {
-                Ok(Some(_)) => {
-                    break;
-                }
-                Ok(None) => {
-                    if now.elapsed() > one_sec {
-                        child.kill().unwrap();
-                        child.kill()?;
-                        return Ok(CodeExecutorResult {
-                            err: Some(Status::TimeLimitExceeded),
-                            output: None,
-                        });
-                    }
-                }
-                Err(e) => {
-                    panic!("Error: {e}");
-                }
-            }
-        }
-
-        let status = child.wait().unwrap();
-        let stdout = child.stdout.unwrap();
-        let mut stderr = vec![];
-
-        if !status.success() {
-            return Ok(CodeExecutorResult {
-                err: Some(Status::RuntimeError),
-                output: Some(Output {
-                    status,
-                    stdout: stdout.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>(),
-                    stderr: child.stderr.unwrap().bytes().filter_map(|x| x.ok()).collect::<Vec<_>>(),
-                }),
-            });
-        }
-        if let Some(v) = child.stderr {
-            stderr = v.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>();
-        }
-
+    fn prepare(&self) -> Result<CodeExecutorResult> {
         Ok(CodeExecutorResult {
             err: None,
-            output: Some(Output {
-                status,
-                stdout: stdout.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>(),
-                stderr,
-            }),
+            output: None,
         })
+    }
+    fn execute_command(&self) -> Command {
+        let mut command = Command::new("python3");
+        command.arg(&self.file_for_execution);
+        command
+    }
+
+    fn get_file_type(&self) -> String{
+       self.file_ending.clone() 
     }
 }

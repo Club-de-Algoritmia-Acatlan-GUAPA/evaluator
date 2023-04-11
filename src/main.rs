@@ -18,15 +18,16 @@ fn main() {
     });
 
     let executor = ProblemExecutor::new();
-    for code in vec![
+    for (idx, code )in vec![
         get_code_runtime_error(),
         get_code_runtime_error_in_some_cases(),
         get_code_time_limit(),
         get_code_accepted(),
-    ] {
+    ].into_iter().enumerate() {
         let submission = Submission {
             language: Language::Python3,
             code,
+            id : idx as i32
         };
         let problem = Problem {
             id: "123123".to_string(),

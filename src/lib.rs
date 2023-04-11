@@ -1,4 +1,6 @@
+pub mod benchmark;
 pub mod checker;
+pub mod code_executor;
 pub mod executor;
 pub mod languages;
 pub mod macros;

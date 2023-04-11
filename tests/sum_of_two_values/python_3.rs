@@ -1,7 +1,5 @@
 use evaluator::executor::ProblemExecutor;
-use evaluator::types::{
-    Checker, Language, PolicyExecution, Problem, Submission, TestCaseResult,
-};
+use evaluator::types::{Checker, Language, PolicyExecution, Problem, Submission, TestCaseResult};
 use expected_response::{
     get_expected_accepted, get_expected_partial_runtime_error, get_expected_runtime_error,
     get_expected_time_limit,
@@ -9,13 +7,14 @@ use expected_response::{
 use pretty_assertions::assert_eq;
 
 use crate::sum_of_two_values::expected_response;
-use evaluator::utils::{get_testcases};
+use evaluator::utils::get_testcases;
 #[test]
 fn test_runtime_error() {
     let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
     let submission = Submission {
         language: Language::Python3,
         code: get_code_runtime_error(),
+        id : 123,
     };
     let problem = Problem {
         id: "123123".to_string(),
@@ -39,6 +38,7 @@ fn test_partial_runtime_error() {
     let submission = Submission {
         language: Language::Python3,
         code: get_code_runtime_error_in_some_cases(),
+        id : 45
     };
     let problem = Problem {
         id: "123123".to_string(),
@@ -62,6 +62,7 @@ fn test_time_limit_exceeded() {
     let submission = Submission {
         language: Language::Python3,
         code: get_code_time_limit(),
+        id : 46
     };
     let problem = Problem {
         id: "123123".to_string(),
@@ -85,6 +86,7 @@ fn test_accepted() {
     let submission = Submission {
         language: Language::Python3,
         code: get_code_accepted(),
+        id : 90
     };
     let problem = Problem {
         id: "123123".to_string(),
