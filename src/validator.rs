@@ -8,8 +8,70 @@ use std::{
 };
 
 use crate::types::{Status, TestCase, TestCaseResult, TestLibExitCodes};
+#[derive(Clone, Debug)]
+pub enum ValidatorType {
+    TestLibChecker,
+    LiteralChecker,
+}
+pub struct Validator {
+    validation_type: ValidatorType,
+    checker: Option<String>,
+}
+impl Validator {
+    pub fn new(validation_type: ValidatorType) -> Self {
+        Validator {
+            validation_type,
+            checker: None,
+        }
+    }
+    pub fn set_checker(&mut self, checker: &str) {
+        self.checker = Some((*checker).to_string());
+    }
 
-pub fn check_input(test_case: &TestCase, output: Output) -> Result<TestCaseResult> {
+    pub fn check_input(&self, test_case: &TestCase, output: Output) -> Result<TestCaseResult> {
+        match self.validation_type {
+            ValidatorType::TestLibChecker => testlib_check_input(test_case, output),
+            ValidatorType::LiteralChecker => literal_checker(test_case, output),
+        }
+    }
+
+    pub fn prepare_validator(&self) -> Result<()> {
+        if let Some(checker) = &self.checker {
+            let mut file = fs::File::create("./playground/checker.cpp")?;
+            file.write_all(checker.as_bytes())?;
+            let comp = Command::new("g++-12")
+                .current_dir("./playground")
+                .args(vec!["checker.cpp", "-o", "checker"])
+                .stderr(Stdio::null())
+                .stdout(Stdio::null())
+                .stdin(Stdio::null())
+                .spawn()?;
+            let _ = comp.wait_with_output()?; // output from compiling the checker
+        }
+        Ok(())
+    }
+}
+
+fn literal_checker(test_case: &TestCase, output: Output) -> Result<TestCaseResult> {
+    let user_output = String::from_utf8_lossy(&output.stdout);
+
+    let status = if user_output == test_case.output_case {
+        Status::Accepted
+    } else {
+        Status::WrongAnswer
+    };
+
+    Ok(TestCaseResult {
+        status,
+        id: test_case.id,
+        output: Some(Output {
+            status: ExitStatus::from_raw(0),
+            stdout: output.stdout,
+            stderr: output.stderr,
+        }),
+    })
+}
+fn testlib_check_input(test_case: &TestCase, output: Output) -> Result<TestCaseResult> {
     let user_output = String::from_utf8_lossy(&output.stdout);
 
     let input_file_name = format!("./playground/judge_input_{}.in", test_case.id);
@@ -29,10 +91,12 @@ pub fn check_input(test_case: &TestCase, output: Output) -> Result<TestCaseResul
 
     let mut child = Command::new("./checker")
         .current_dir("./playground")
+        .args(vec![
+            input_file_name,
+            user_output_file_name,
+            judge_output_file_name,
+        ])
         .stdin(Stdio::piped())
-        .arg(input_file_name)
-        .arg(user_output_file_name)
-        .arg(judge_output_file_name)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;

@@ -12,13 +12,14 @@ use crate::types::{Status, TestCase};
 
 pub fn run_and_meassure(mut command: Command, test_case: &TestCase) -> Result<CodeExecutorResult> {
     let child = command
+        .current_dir("./playground")
         .stdout(Stdio::piped())
         .stdin(Stdio::piped())
         .stderr(Stdio::piped());
 
     let one_sec = Duration::from_secs(1);
     let now = Instant::now();
-
+    // spawn
     let mut child = match child.spawn() {
         Ok(child) => child,
         Err(v) => {
@@ -33,7 +34,6 @@ pub fn run_and_meassure(mut command: Command, test_case: &TestCase) -> Result<Co
             });
         }
     };
-
     let child_stdin = child.stdin.as_mut().expect("F");
 
     if child_stdin

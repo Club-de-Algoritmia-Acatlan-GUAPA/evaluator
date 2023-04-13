@@ -1,9 +1,11 @@
 use anyhow::Result;
 
-use crate::back_to_enum;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::process::Output;
+
+use crate::back_to_enum;
+use crate::validator::ValidatorType;
 
 #[derive(Debug, Clone)]
 pub enum Language {
@@ -68,19 +70,10 @@ pub struct Checker {
 }
 
 #[derive(Debug, Clone)]
-pub struct CodeExecutorResult {
-    pub err: Option<Status>,
-    pub output: Option<Output>,
-}
-pub trait CodeExecutor {
-    fn execute(&self, test_case: &TestCase) -> Result<CodeExecutorResult>;
-}
-
-#[derive(Debug, Clone)]
 pub struct Submission {
     pub language: Language,
     pub code: String,
-    pub id : i32
+    pub id: i32,
 }
 
 #[derive(Debug, Clone)]
@@ -92,6 +85,7 @@ pub struct Problem {
     pub system_policy: Option<SystemPolicy>,
     pub test_cases: Vec<TestCase>,
     pub checker: Option<Checker>,
+    pub validation_type: ValidatorType,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]

@@ -1,5 +1,6 @@
-use evaluator::executor::ProblemExecutor;
+use evaluator::problem_executor::ProblemExecutor;
 use evaluator::types::{Checker, Language, PolicyExecution, Problem, Submission, TestCaseResult};
+use evaluator::validator::ValidatorType;
 use expected_response::{
     get_expected_accepted, get_expected_partial_runtime_error, get_expected_runtime_error,
     get_expected_time_limit,
@@ -14,7 +15,7 @@ fn test_runtime_error() {
     let submission = Submission {
         language: Language::Python3,
         code: get_code_runtime_error(),
-        id : 123,
+        id: 123,
     };
     let problem = Problem {
         id: "123123".to_string(),
@@ -23,6 +24,7 @@ fn test_runtime_error() {
         system_policy: None,
         test_cases: test_cases.clone(),
         checker: Some(get_checker()),
+        validation_type: ValidatorType::TestLibChecker,
     };
     let expected = get_expected_runtime_error();
     let executor = ProblemExecutor::new();
@@ -38,7 +40,7 @@ fn test_partial_runtime_error() {
     let submission = Submission {
         language: Language::Python3,
         code: get_code_runtime_error_in_some_cases(),
-        id : 45
+        id: 45,
     };
     let problem = Problem {
         id: "123123".to_string(),
@@ -47,6 +49,7 @@ fn test_partial_runtime_error() {
         system_policy: None,
         test_cases: test_cases.clone(),
         checker: Some(get_checker()),
+        validation_type: ValidatorType::TestLibChecker,
     };
     let expected = get_expected_partial_runtime_error();
     let executor = ProblemExecutor::new();
@@ -62,7 +65,7 @@ fn test_time_limit_exceeded() {
     let submission = Submission {
         language: Language::Python3,
         code: get_code_time_limit(),
-        id : 46
+        id: 46,
     };
     let problem = Problem {
         id: "123123".to_string(),
@@ -71,6 +74,7 @@ fn test_time_limit_exceeded() {
         system_policy: None,
         test_cases: test_cases.clone(),
         checker: Some(get_checker()),
+        validation_type: ValidatorType::TestLibChecker,
     };
     let expected = get_expected_time_limit();
     let executor = ProblemExecutor::new();
@@ -86,7 +90,7 @@ fn test_accepted() {
     let submission = Submission {
         language: Language::Python3,
         code: get_code_accepted(),
-        id : 90
+        id: 90,
     };
     let problem = Problem {
         id: "123123".to_string(),
@@ -95,6 +99,7 @@ fn test_accepted() {
         system_policy: None,
         test_cases: test_cases.clone(),
         checker: Some(get_checker()),
+        validation_type: ValidatorType::TestLibChecker,
     };
     let expected = get_expected_accepted();
     let executor = ProblemExecutor::new();
@@ -166,6 +171,8 @@ solve()"#
 }
 fn get_code_accepted() -> String {
     r#"
+from time import sleep
+# sleep(100)
 IO = lambda: list(map(int, input().split()))
 n, target = IO()
 arr = [ (value, idx + 1) for idx, value in enumerate(IO()) ]

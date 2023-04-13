@@ -6,9 +6,10 @@ use std::{
     process::{Command, ExitStatus, Output, Stdio},
 };
 
-use crate::code_executor::{CodeExecutorResult, Language};
+use crate::code_executor::{CodeExecutorResult, LanguageExecutor};
 use crate::types::Status;
 
+#[derive(Default)]
 pub struct Cpp {
     pub file_ending: String,
     pub file_for_execution: String,
@@ -16,7 +17,7 @@ pub struct Cpp {
     pub id: i32,
 }
 
-impl Language for Cpp {
+impl LanguageExecutor for Cpp {
     fn new_lang(id: i32) -> Self {
         let file_ending = "cpp".to_string();
 
@@ -33,10 +34,12 @@ impl Language for Cpp {
         // create executable
         let child = command
             .current_dir("./playground")
-            .arg("-std=c++1z")
-            .arg(&self.file_for_execution)
-            .arg("-o")
-            .arg(&self.executable_name)
+            .args(vec![
+                "-std=c++1z",
+                &self.file_for_execution,
+                "-o",
+                &self.executable_name,
+            ])
             .stdout(Stdio::piped())
             .stdin(Stdio::piped())
             .stderr(Stdio::piped());
@@ -123,7 +126,7 @@ pub fn test_execute_function() -> Result<()> {
 
     let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
 
-    let mut executor: CodeExecutor<Cpp> = CodeExecutor::new(1232);
+    let mut executor = CodeExecutor::new(Cpp::new_lang(123), 23);
     executor.code(code.to_string());
     let _ = executor.prepare_code_env()?;
     let res = executor.execute(&test_cases[21]);

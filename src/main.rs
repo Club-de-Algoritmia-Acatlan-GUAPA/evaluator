@@ -1,6 +1,7 @@
-use evaluator::executor::ProblemExecutor;
+use evaluator::problem_executor::ProblemExecutor;
 use evaluator::types::{Checker, Language, PolicyExecution, Problem, Submission, TestCase};
 use evaluator::utils;
+use evaluator::validator::ValidatorType;
 fn main() {
     //TODO pre compile testlib
     let files = utils::get_testcases_names("./tests/sum_of_two_values/stdio".to_string());
@@ -18,16 +19,19 @@ fn main() {
     });
 
     let executor = ProblemExecutor::new();
-    for (idx, code )in vec![
+    for (idx, code) in vec![
         get_code_runtime_error(),
         get_code_runtime_error_in_some_cases(),
         get_code_time_limit(),
         get_code_accepted(),
-    ].into_iter().enumerate() {
+    ]
+    .into_iter()
+    .enumerate()
+    {
         let submission = Submission {
             language: Language::Python3,
             code,
-            id : idx as i32
+            id: idx as i32,
         };
         let problem = Problem {
             id: "123123".to_string(),
@@ -36,11 +40,10 @@ fn main() {
             system_policy: None,
             test_cases: test_cases.clone(),
             checker: Some(get_checker()),
+            validation_type: ValidatorType::TestLibChecker,
         };
         let res = executor.execute(submission, problem).unwrap();
-        for i in res.test_cases_results {
-            println!("{i:?}");
-        }
+        println!("{:?}", res);
     }
     //  todo!("Move all of this to a test");
 }
@@ -99,7 +102,9 @@ solve()"#
 }
 fn get_code_accepted() -> String {
     r#"
+from time import sleep
 IO = lambda: list(map(int, input().split()))
+sleep(100)
 n, target = IO()
 arr = [ (value, idx + 1) for idx, value in enumerate(IO()) ]
 dic = {}
