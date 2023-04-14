@@ -18,7 +18,7 @@ pub struct ExecutorMetadata {
 }
 
 #[derive(Debug, Clone)]
-pub struct CodeExecutorResult {
+pub struct CodeExecutorResult<L : LanguageExecutor> {
     pub err: Option<Status>,
     pub output: Option<Output>,
 }
