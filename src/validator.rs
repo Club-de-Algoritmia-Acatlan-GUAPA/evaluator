@@ -118,12 +118,7 @@ fn testlib_check_input(test_case: &TestCase, output: Output) -> Result<TestCaseR
         id: test_case.id,
         output: Some(Output {
             status: ExitStatus::from_raw(status_code.unwrap()),
-            stdout: child
-                .stdout
-                .unwrap()
-                .bytes()
-                .filter_map(|x| x.ok())
-                .collect(),
+            stdout: output.stdout,
             stderr: child
                 .stderr
                 .unwrap()

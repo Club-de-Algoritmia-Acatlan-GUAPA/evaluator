@@ -6,7 +6,6 @@ fn main() {
     //TODO pre compile testlib
     let files = utils::get_testcases_names("./tests/sum_of_two_values/stdio".to_string());
     let mut test_cases = vec![];
-
     files.iter().enumerate().for_each(|(idx, elem)| {
         if elem.len() <= 1 {
             return;
@@ -43,6 +42,33 @@ fn main() {
             validation_type: ValidatorType::TestLibChecker,
         };
         let res = executor.execute(submission, problem).unwrap();
+        // dbg!(res);
+        println!("{:?}", res);
+    }
+
+    for (idx, code) in vec![
+        get_cpp_tle(),
+        get_cpp_acc()
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let submission = Submission {
+            language: Language::Cpp,
+            code,
+            id: idx as i32,
+        };
+        let problem = Problem {
+            id: "123123".to_string(),
+            name: Some("Sum of Two Values".to_string()),
+            policy_execution: PolicyExecution::Checker,
+            system_policy: None,
+            test_cases: test_cases.clone(),
+            checker: Some(get_checker()),
+            validation_type: ValidatorType::TestLibChecker,
+        };
+        let res = executor.execute(submission, problem).unwrap();
+        // dbg!(res);
         println!("{:?}", res);
     }
     //  todo!("Move all of this to a test");
@@ -62,6 +88,61 @@ for (i,x) in enumerate(arr):
 print("IMPOSSIBLE")
         "#
     .to_string()
+}
+fn get_cpp_tle() -> String {
+    r#"
+    #include<bits/stdc++.h>
+ 
+    using namespace std;
+    // TLE
+    void solve() {
+        map<int, int>m;
+        int n , target;
+        cin>>n>>target;
+        vector<int>arr(n);
+        for(auto &x: arr)cin>>x;
+        for(int idx = 0; idx < n; idx++) { 
+            for(int i = idx + 1 ; i < n ; i++) {
+                if(arr[i] + arr[idx] == target) { 
+                    cout<<idx + 1 << " "<< i + 1;
+                    return;
+                }
+            }
+        }
+        cout<<"IMPOSSIBLE"<<endl;
+    }
+    int main() {
+       solve();
+    }
+    "#.to_string()
+}
+fn get_cpp_acc() -> String {
+r#"
+#include<bits/stdc++.h>
+
+using namespace std;
+// accepted
+void solve() {
+    map<int, int>m;
+    int n , target;
+    cin>>n>>target;
+    vector<int>arr(n);
+    for(auto &x: arr)cin>>x;
+    for(int idx = 0; idx < n; idx++) { 
+        int val = target  - arr[idx];
+        if( m.count(val) ) { 
+            cout<<idx + 1 << " "<< m[val] + 1<<endl;
+            return;
+        }
+        m[arr[idx]] = idx;
+    }
+    cout<<"IMPOSSIBLE"<<endl;
+}
+int main() {
+   solve();
+}
+
+"#.to_string()
 }
 fn get_code_runtime_error_in_some_cases() -> String {
     r#"
@@ -104,7 +185,7 @@ fn get_code_accepted() -> String {
     r#"
 from time import sleep
 IO = lambda: list(map(int, input().split()))
-sleep(100)
+#sleep(100)
 n, target = IO()
 arr = [ (value, idx + 1) for idx, value in enumerate(IO()) ]
 dic = {}
