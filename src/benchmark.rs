@@ -1,17 +1,19 @@
 use anyhow::Result;
 
+use crate::code_executor::CodeExecutorResult;
+use crate::types::{Status, TestCase};
 use std::io::{Read, Write};
 use std::os::unix::process::ExitStatusExt;
 use std::process::{Command, ExitStatus, Output, Stdio};
 use std::time::{Duration, Instant};
-use crate::code_executor::CodeExecutorResult;
-use crate::types::{Status, TestCase};
 //
 //https://github.com/sharkdp/hyperfine/blob/2763b411afe0f035be1a6dcd304e4635d9b2ea47/src/timer/mod.rs
 
-pub fn run_and_meassure(mut command: Command, test_case: &TestCase) -> Result<CodeExecutorResult> {
+pub fn run_and_meassure(
+    command: &mut Command,
+    test_case: &TestCase,
+) -> Result<CodeExecutorResult> {
     let child = command
-        .current_dir("./playground")
         .stdout(Stdio::piped())
         .stdin(Stdio::piped())
         .stderr(Stdio::piped());

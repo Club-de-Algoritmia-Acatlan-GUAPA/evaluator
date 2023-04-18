@@ -6,28 +6,22 @@ use std::{
     process::{Command, ExitStatus, Output, Stdio},
 };
 
-use crate::code_executor::{CodeExecutorResult, LanguageExecutor};
+use crate::code_executor::{CodeExecutor, CodeExecutorResult, LanguageExecutor};
 use crate::types::Status;
 
 #[derive(Default)]
-pub struct Cpp {
-    pub file_ending: String,
-    pub file_for_execution: String,
-    pub executable_name: String,
-    pub id: i32,
-}
+pub struct Cpp;
 
-impl LanguageExecutor for Cpp {
-    fn new_lang(id: i32) -> Self {
-        let file_ending = "cpp".to_string();
-
-        Self {
-            id,
-            file_for_execution: format!("{}.{}", id, file_ending),
-            file_ending,
-            executable_name: format!("{}", id),
+impl CodeExecutor<Cpp> {
+    pub fn new() -> Self {
+        CodeExecutor {
+            file_type: "cpp".to_string(),
+            ..Default::default()
         }
     }
+}
+
+impl LanguageExecutor for CodeExecutor<Cpp> {
     fn prepare(&self) -> Result<CodeExecutorResult> {
         let mut command = Command::new("g++-12");
 
@@ -36,9 +30,9 @@ impl LanguageExecutor for Cpp {
             .current_dir("./playground")
             .args(vec![
                 "-std=c++1z",
-                &self.file_for_execution,
+                &format!("{}.{}", self.id, self.get_file_type()),
                 "-o",
-                &self.executable_name,
+                &format!("{}", self.id),
             ])
             .stdout(Stdio::piped())
             .stdin(Stdio::piped())
@@ -86,11 +80,11 @@ impl LanguageExecutor for Cpp {
     }
 
     fn execute_command(&self) -> std::process::Command {
-        Command::new(format!("./{}", self.executable_name))
+        Command::new(format!("./{}", self.id))
     }
 
     fn get_file_type(&self) -> String {
-        self.file_ending.clone()
+        "cpp".to_string()
     }
 }
 
@@ -126,8 +120,11 @@ pub fn test_execute_function() -> Result<()> {
 
     let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
 
-    let mut executor = CodeExecutor::new(Cpp::new_lang(123), 23);
+    let mut executor = CodeExecutor::<Cpp>::new();
     executor.code(code.to_string());
+    executor.set_id(12);
+    executor.prepare_code_env()?;
+
     let _ = executor.prepare_code_env()?;
     let res = executor.execute(&test_cases[21]);
     let _ = dbg!(res);

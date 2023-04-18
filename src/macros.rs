@@ -20,3 +20,24 @@ macro_rules! back_to_enum {
         }
     }
 }
+
+#[macro_export]
+macro_rules! match_lang {
+    (
+        Executor : let mut $executor:ident,
+        Lang : $struct:ident.$field:ident,
+        $($code:tt)*
+    ) => {
+        match $struct.$field {
+            Language::Python3 => {
+                let mut $executor = CodeExecutor::<python_3::Python3>::new();
+                $($code)*
+            },
+            Language::Cpp => {
+                let mut $executor = CodeExecutor::<cpp::Cpp>::new();
+                $($code)*
+            },
+            _ => todo!(),
+        }
+    };
+}

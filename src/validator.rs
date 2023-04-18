@@ -28,7 +28,7 @@ impl Validator {
         self.checker = Some((*checker).to_string());
     }
 
-    pub fn check_input(&self, test_case: &TestCase, output: Output) -> Result<TestCaseResult> {
+    pub fn check_input(&self, test_case: &TestCase, output: &Output) -> Result<TestCaseResult> {
         match self.validation_type {
             ValidatorType::TestLibChecker => testlib_check_input(test_case, output),
             ValidatorType::LiteralChecker => literal_checker(test_case, output),
@@ -52,7 +52,7 @@ impl Validator {
     }
 }
 
-fn literal_checker(test_case: &TestCase, output: Output) -> Result<TestCaseResult> {
+fn literal_checker(test_case: &TestCase, output: &Output) -> Result<TestCaseResult> {
     let user_output = String::from_utf8_lossy(&output.stdout);
 
     let status = if user_output == test_case.output_case {
@@ -66,12 +66,12 @@ fn literal_checker(test_case: &TestCase, output: Output) -> Result<TestCaseResul
         id: test_case.id,
         output: Some(Output {
             status: ExitStatus::from_raw(0),
-            stdout: output.stdout,
-            stderr: output.stderr,
+            stdout: output.stdout.clone(),
+            stderr: output.stderr.clone(),
         }),
     })
 }
-fn testlib_check_input(test_case: &TestCase, output: Output) -> Result<TestCaseResult> {
+fn testlib_check_input(test_case: &TestCase, output: &Output) -> Result<TestCaseResult> {
     let user_output = String::from_utf8_lossy(&output.stdout);
 
     let input_file_name = format!("./playground/judge_input_{}.in", test_case.id);
@@ -118,7 +118,7 @@ fn testlib_check_input(test_case: &TestCase, output: Output) -> Result<TestCaseR
         id: test_case.id,
         output: Some(Output {
             status: ExitStatus::from_raw(status_code.unwrap()),
-            stdout: output.stdout,
+            stdout: output.stdout.clone(),
             stderr: child
                 .stderr
                 .unwrap()
