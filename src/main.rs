@@ -42,17 +42,12 @@ fn main() {
             validation_type: ValidatorType::TestLibChecker,
         };
         let res = executor.execute(submission, problem).unwrap();
+        println!("{:?}", res.overall_result);
         // dbg!(res);
-        println!("{:?}", res);
+        // f!("{:?}", res.overall_result);
     }
 
-    for (idx, code) in vec![
-        get_cpp_tle(),
-        get_cpp_acc()
-    ]
-    .into_iter()
-    .enumerate()
-    {
+    for (idx, code) in vec![get_cpp_tle(), get_cpp_acc()].into_iter().enumerate() {
         let submission = Submission {
             language: Language::Cpp,
             code,
@@ -68,10 +63,11 @@ fn main() {
             validation_type: ValidatorType::TestLibChecker,
         };
         let res = executor.execute(submission, problem).unwrap();
-        // dbg!(res);
-        println!("{:?}", res);
+        dbg!(res);
+        // println!("{:?}", res.overall_result);
+        // println!("{:?}", res);
     }
-    //  todo!("Move all of this to a test");
+    // todo!("Move all of this to a test");
 }
 
 fn get_code_runtime_error() -> String {
@@ -114,10 +110,11 @@ fn get_cpp_tle() -> String {
     int main() {
        solve();
     }
-    "#.to_string()
+    "#
+    .to_string()
 }
 fn get_cpp_acc() -> String {
-r#"
+    r#"
 #include<bits/stdc++.h>
 
 using namespace std;
@@ -142,7 +139,8 @@ int main() {
    solve();
 }
 
-"#.to_string()
+"#
+    .to_string()
 }
 fn get_code_runtime_error_in_some_cases() -> String {
     r#"
