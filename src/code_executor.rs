@@ -17,7 +17,7 @@ pub struct CodeExecutorResult {
 pub trait LanguageExecutor: Send + Sync {
     fn prepare(&self) -> Result<CodeExecutorResult>;
     fn execute_command(&self) -> Command;
-    fn get_file_type(&self) -> String;
+    fn get_file_type() -> String;
 }
 
 #[derive(Default, Debug)]
@@ -31,10 +31,16 @@ pub struct CodeExecutor<L: ?Sized> {
     
 }
 
-impl<L> CodeExecutor<L>
+impl<L: Default> CodeExecutor<L>
 where
     Self: LanguageExecutor,
 {
+    pub fn new() -> Self {
+        CodeExecutor { 
+           file_type : Self::get_file_type(),
+           ..Default::default()
+        }
+    }
     pub fn code(&mut self, code: String) {
         self.code = code;
     }

@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     code_executor::{CodeExecutor, CodeExecutorResult},
-    languages::{cpp, python_3},
+    // languages::{cpp, python_3},
     types::{
         Language, Problem, ProblemExecutorResult, Status, Submission, TestCaseResult,
         STATUS_PRECEDENCE,
@@ -24,10 +24,6 @@ impl Default for ProblemExecutor {
         ProblemExecutor::new()
     }
 }
-pub enum TrickyEnum {
-    Cpp(CodeExecutor<cpp::Cpp>),
-    Python3(CodeExecutor<python_3::Python3>),
-}
 
 impl ProblemExecutor {
     pub fn new() -> Self {
@@ -39,8 +35,9 @@ impl ProblemExecutor {
         problem: Problem,
     ) -> Result<ProblemExecutorResult> {
         match_lang! {
-            Executor: let mut executor,
+            Executor : let mut executor,
             Lang : submission.language,
+
             executor.code(submission.code);
             executor.set_id(submission.id);
             executor.prepare_code_env()?;

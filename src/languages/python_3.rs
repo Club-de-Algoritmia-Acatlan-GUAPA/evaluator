@@ -17,16 +17,7 @@ impl LanguageExecutor for CodeExecutor<Python3> {
         Command::new("python3")
     }
 
-    fn get_file_type(&self) -> String {
+    fn get_file_type() -> String {
         "py".to_string()
-    }
-}
-
-impl CodeExecutor<Python3> {
-    pub fn new() -> Self {
-        CodeExecutor {
-            file_type: "py".to_string(),
-            ..Default::default()
-        }
     }
 }

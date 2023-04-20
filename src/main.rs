@@ -49,7 +49,7 @@ fn main() {
 
     for (idx, code) in vec![get_cpp_tle(), get_cpp_acc()].into_iter().enumerate() {
         let submission = Submission {
-            language: Language::Cpp,
+            language: Language::Cpp11,
             code,
             id: idx as i32,
         };

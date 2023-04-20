@@ -9,19 +9,27 @@ use std::{
 use crate::code_executor::{CodeExecutor, CodeExecutorResult, LanguageExecutor};
 use crate::types::Status;
 
-#[derive(Default)]
-pub struct Cpp;
-
-impl CodeExecutor<Cpp> {
-    pub fn new() -> Self {
-        CodeExecutor {
-            file_type: "cpp".to_string(),
-            ..Default::default()
-        }
-    }
+trait CPP {
+    fn get_cpp_version(&self) -> String;
 }
 
-impl LanguageExecutor for CodeExecutor<Cpp> {
+#[derive(Default)]
+pub struct Cpp17;
+#[derive(Default)]
+pub struct Cpp11;
+
+impl CPP for CodeExecutor<Cpp17> {
+    fn get_cpp_version(&self) -> String {
+        "-std=c++1z".to_string()
+    }
+}
+impl CPP for CodeExecutor<Cpp11> {
+    fn get_cpp_version(&self) -> String {
+        "-std=c++11".to_string()
+    }
+}
+impl <L> LanguageExecutor for CodeExecutor<L>
+where Self : CPP + Send + Sync {
     fn prepare(&self) -> Result<CodeExecutorResult> {
         let mut command = Command::new("g++-12");
 
@@ -29,9 +37,9 @@ impl LanguageExecutor for CodeExecutor<Cpp> {
         let child = command
             .current_dir("./playground")
             .args(vec![
-                "-std=c++1z",
-                &format!("{}.{}", self.id, self.get_file_type()),
-                "-o",
+                &self.get_cpp_version(), 
+                &format!("{}.{}", self.id, Self::get_file_type()),
+                &"-o".to_string(),
                 &format!("{}", self.id),
             ])
             .stdout(Stdio::piped())
@@ -83,7 +91,7 @@ impl LanguageExecutor for CodeExecutor<Cpp> {
         Command::new(format!("./{}", self.id))
     }
 
-    fn get_file_type(&self) -> String {
+    fn get_file_type() -> String {
         "cpp".to_string()
     }
 }
@@ -120,7 +128,7 @@ pub fn test_execute_function() -> Result<()> {
 
     let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
 
-    let mut executor = CodeExecutor::<Cpp>::new();
+    let mut executor = CodeExecutor::<Cpp17>::new();
     executor.code(code.to_string());
     executor.set_id(12);
     executor.prepare_code_env()?;
