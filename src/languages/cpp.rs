@@ -9,7 +9,7 @@ use std::{
 use crate::code_executor::{CodeExecutor, CodeExecutorResult, LanguageExecutor};
 use crate::types::Status;
 
-trait CPP {
+trait Cpp {
     fn get_cpp_version(&self) -> String;
 }
 
@@ -18,20 +18,20 @@ pub struct Cpp17;
 #[derive(Default)]
 pub struct Cpp11;
 
-impl CPP for CodeExecutor<Cpp17> {
+impl Cpp for CodeExecutor<Cpp17> {
     fn get_cpp_version(&self) -> String {
         "-std=c++1z".to_string()
     }
 }
-impl CPP for CodeExecutor<Cpp11> {
+impl Cpp for CodeExecutor<Cpp11> {
     fn get_cpp_version(&self) -> String {
         "-std=c++11".to_string()
     }
 }
 impl <L> LanguageExecutor for CodeExecutor<L>
-where Self : CPP + Send + Sync {
+where Self : Cpp + Send + Sync {
     fn prepare(&self) -> Result<CodeExecutorResult> {
-        let mut command = Command::new("g++-12");
+        let mut command = Command::new("g++");
 
         // create executable
         let child = command

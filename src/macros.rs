@@ -30,17 +30,17 @@ macro_rules! match_lang {
     ) => {
         match $struct.$field {
             Language::Python3 => {
-                use crate::languages::python_3;
+                use $crate::languages::python_3;
                 let mut $executor = CodeExecutor::<python_3::Python3>::new();
                 $($code)*
             },
             Language::Cpp11 => {
-                use crate::languages::cpp;
+                use $crate::languages::cpp;
                 let mut $executor = CodeExecutor::<cpp::Cpp11>::new();
                 $($code)*
             },
             Language::Cpp17 => {
-                use crate::languages::cpp;
+                use $crate::languages::cpp;
                 let mut $executor = CodeExecutor::<cpp::Cpp17>::new();
                 $($code)*
             },
