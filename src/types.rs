@@ -12,7 +12,7 @@ pub enum Language {
     Python3,
     Java,
     Cpp11,
-    Cpp17
+    Cpp17,
 }
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Status {

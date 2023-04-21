@@ -1,5 +1,7 @@
 use evaluator::problem_executor::ProblemExecutor;
-use evaluator::types::{Checker, Language, PolicyExecution, Problem, Submission, TestCaseResult};
+use evaluator::types::{
+    Checker, Language, PolicyExecution, Problem, ProblemExecutorResult, Submission, TestCaseResult,
+};
 use evaluator::validator::ValidatorType;
 use expected_response::{
     get_expected_accepted, get_expected_partial_runtime_error, get_expected_runtime_error,
@@ -9,87 +11,42 @@ use pretty_assertions::assert_eq;
 
 use crate::sum_of_two_values::expected_response;
 use evaluator::utils::get_testcases;
+
 #[test]
 fn test_runtime_error() {
-    let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
-    let submission = Submission {
-        language: Language::Python3,
-        code: get_code_runtime_error(),
-        id: 123,
-    };
-    let problem = Problem {
-        id: "123123".to_string(),
-        name: Some("Sum of Two Values".to_string()),
-        policy_execution: PolicyExecution::Checker,
-        system_policy: None,
-        test_cases: test_cases.clone(),
-        checker: Some(get_checker()),
-        validation_type: ValidatorType::TestLibChecker,
-    };
-    let expected = get_expected_runtime_error();
-    let executor = ProblemExecutor::new();
-    let mut res = executor.execute(submission, problem).unwrap();
-    res.test_cases_results = sort_by_id(res.test_cases_results);
-    res.test_cases_results = output_to_none(sort_by_id(res.test_cases_results));
-    assert_eq!(res, expected);
+    assert_eq!(
+        evaluate_code(get_code_runtime_error()),
+        get_expected_runtime_error()
+    );
 }
 
 #[test]
 fn test_partial_runtime_error() {
-    let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
-    let submission = Submission {
-        language: Language::Python3,
-        code: get_code_runtime_error_in_some_cases(),
-        id: 45,
-    };
-    let problem = Problem {
-        id: "123123".to_string(),
-        name: Some("Sum of Two Values".to_string()),
-        policy_execution: PolicyExecution::Checker,
-        system_policy: None,
-        test_cases: test_cases.clone(),
-        checker: Some(get_checker()),
-        validation_type: ValidatorType::TestLibChecker,
-    };
-    let expected = get_expected_partial_runtime_error();
-    let executor = ProblemExecutor::new();
-    let mut res = executor.execute(submission, problem).unwrap();
-    res.test_cases_results = sort_by_id(res.test_cases_results);
-    res.test_cases_results = output_to_none(sort_by_id(res.test_cases_results));
-    assert_eq!(res, expected);
+    assert_eq!(
+        evaluate_code(get_code_runtime_error_in_some_cases()),
+        get_expected_partial_runtime_error()
+    );
 }
 
 #[test]
 fn test_time_limit_exceeded() {
-    let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
-    let submission = Submission {
-        language: Language::Python3,
-        code: get_code_time_limit(),
-        id: 46,
-    };
-    let problem = Problem {
-        id: "123123".to_string(),
-        name: Some("Sum of Two Values".to_string()),
-        policy_execution: PolicyExecution::Checker,
-        system_policy: None,
-        test_cases: test_cases.clone(),
-        checker: Some(get_checker()),
-        validation_type: ValidatorType::TestLibChecker,
-    };
-    let expected = get_expected_time_limit();
-    let executor = ProblemExecutor::new();
-    let mut res = executor.execute(submission, problem).unwrap();
-    res.test_cases_results = sort_by_id(res.test_cases_results);
-    res.test_cases_results = output_to_none(sort_by_id(res.test_cases_results));
-    assert_eq!(res, expected);
+    assert_eq!(
+        evaluate_code(get_code_time_limit()),
+        get_expected_time_limit()
+    );
 }
 
 #[test]
 fn test_accepted() {
+    assert_eq!(evaluate_code(get_code_accepted()), get_expected_accepted());
+}
+
+fn evaluate_code(code: String) -> ProblemExecutorResult {
+    let executor = ProblemExecutor::new();
     let test_cases = get_testcases("./tests/sum_of_two_values/stdio".to_string());
     let submission = Submission {
         language: Language::Python3,
-        code: get_code_accepted(),
+        code,
         id: 90,
     };
     let problem = Problem {
@@ -101,14 +58,12 @@ fn test_accepted() {
         checker: Some(get_checker()),
         validation_type: ValidatorType::TestLibChecker,
     };
-    let expected = get_expected_accepted();
-    let executor = ProblemExecutor::new();
     let mut res = executor.execute(submission, problem).unwrap();
     res.test_cases_results = sort_by_id(res.test_cases_results);
     res.test_cases_results = output_to_none(sort_by_id(res.test_cases_results));
-    assert_eq!(res, expected);
-}
 
+    res
+}
 fn sort_by_id(mut arr: Vec<TestCaseResult>) -> Vec<TestCaseResult> {
     arr.sort_by(|a, b| a.id.cmp(&b.id));
     arr
@@ -118,6 +73,7 @@ fn output_to_none(mut arr: Vec<TestCaseResult>) -> Vec<TestCaseResult> {
     arr.iter_mut().for_each(|elem| elem.output = None);
     arr
 }
+
 fn get_code_runtime_error() -> String {
     r#"
 a,tar= [int(x) for x in raw_input().split(' ')]

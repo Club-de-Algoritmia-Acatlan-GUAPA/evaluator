@@ -43,8 +43,6 @@ fn main() {
         };
         let res = executor.execute(submission, problem).unwrap();
         println!("{:?}", res.overall_result);
-        // dbg!(res);
-        // f!("{:?}", res.overall_result);
     }
 
     for (idx, code) in vec![get_cpp_tle(), get_cpp_acc()].into_iter().enumerate() {

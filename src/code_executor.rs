@@ -15,7 +15,12 @@ pub struct CodeExecutorResult {
     pub output: Option<Output>,
 }
 pub trait LanguageExecutor: Send + Sync {
-    fn prepare(&self) -> Result<CodeExecutorResult>;
+    fn prepare(&self) -> Result<CodeExecutorResult> {
+        Ok(CodeExecutorResult {
+            err: None,
+            output: None,
+        })
+    }
     fn execute_command(&self) -> Command;
     fn get_file_type() -> String;
 }
@@ -28,7 +33,6 @@ pub struct CodeExecutor<L: ?Sized> {
     pub checker: Option<String>,
     pub file_type: String,
     pub _marker: std::marker::PhantomData<L>,
-    
 }
 
 impl<L: Default> CodeExecutor<L>
@@ -36,9 +40,9 @@ where
     Self: LanguageExecutor,
 {
     pub fn new() -> Self {
-        CodeExecutor { 
-           file_type : Self::get_file_type(),
-           ..Default::default()
+        CodeExecutor {
+            file_type: Self::get_file_type(),
+            ..Default::default()
         }
     }
     pub fn code(&mut self, code: String) {

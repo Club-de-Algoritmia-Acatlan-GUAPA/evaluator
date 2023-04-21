@@ -28,8 +28,10 @@ impl Cpp for CodeExecutor<Cpp11> {
         "-std=c++11".to_string()
     }
 }
-impl <L> LanguageExecutor for CodeExecutor<L>
-where Self : Cpp + Send + Sync {
+impl<L> LanguageExecutor for CodeExecutor<L>
+where
+    Self: Cpp + Send + Sync,
+{
     fn prepare(&self) -> Result<CodeExecutorResult> {
         let mut command = Command::new("g++");
 
@@ -37,7 +39,7 @@ where Self : Cpp + Send + Sync {
         let child = command
             .current_dir("./playground")
             .args(vec![
-                &self.get_cpp_version(), 
+                &self.get_cpp_version(),
                 &format!("{}.{}", self.id, Self::get_file_type()),
                 &"-o".to_string(),
                 &format!("{}", self.id),
@@ -60,27 +62,25 @@ where Self : Cpp + Send + Sync {
             }
         };
         // wait for any other possible runtime error
+
         let status = child.wait()?;
+        let status_result = status.success();
+
         let stdout = child.stdout.map_or_else(Vec::new, |stdout| {
             stdout.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>()
         });
         let stderr = child.stderr.map_or_else(Vec::new, |stdout| {
             stdout.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>()
         });
-        if !status.success() {
-            return Ok(CodeExecutorResult {
-                err: Some(Status::RuntimeError),
-                output: Some(Output {
-                    status: ExitStatus::from_raw(1),
-                    stdout,
-                    stderr,
-                }),
-            });
-        }
+
         Ok(CodeExecutorResult {
-            err: None,
+            err: status_result.then_some(Status::RuntimeError),
             output: Some(Output {
-                status,
+                status: if status_result {
+                    ExitStatus::from_raw(1)
+                } else {
+                    status
+                },
                 stdout,
                 stderr,
             }),
