@@ -4,8 +4,7 @@ use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
 
 use crate::{
-    code_executor::{CodeExecutor, CodeExecutorResult},
-    match_lang,
+    code_executor::{CodeExecutor, CodeExecutorImpl, CodeExecutorResult},
     types::{
         Language, Problem, ProblemExecutorResult, Status, Submission, TestCaseResult,
         STATUS_PRECEDENCE,
@@ -31,67 +30,84 @@ impl ProblemExecutor {
         submission: Submission,
         problem: Problem,
     ) -> Result<ProblemExecutorResult> {
-        match_lang! {
-            Executor : let mut executor,
-            Lang : submission.language,
+        let mut executor = get_executor(submission.language);
 
-            executor.code(submission.code);
-            executor.set_id(submission.id);
-            executor.prepare_code_env()?;
+        executor.code(submission.code);
+        executor.set_id(submission.id);
+        executor.prepare_code_env()?;
 
-            let mut validator = Validator::new(problem.validation_type);
+        let mut validator = Validator::new(problem.validation_type);
 
-            if let Some(checker) = problem.checker.as_ref() {
-                validator.set_checker(&checker.checker);
-            }
+        if let Some(checker) = problem.checker.as_ref() {
+            validator.set_checker(&checker.checker);
+        }
 
-            validator.prepare_validator()?;
+        validator.prepare_validator()?;
 
-            let mutexed_tests = Arc::new(Mutex::new(Vec::new()));
+        let mutexed_tests = Arc::new(Mutex::new(Vec::new()));
 
-            problem
-                .test_cases
-                .par_iter()
-                .for_each(|test_case| match executor.execute(test_case) {
-                    Ok(CodeExecutorResult { err, output }) => {
-                        if let Some(err) = err {
-                            mutexed_tests.lock().unwrap().push(TestCaseResult {
-                                status: err,
-                                id: test_case.id,
-                                output,
-                            });
-                            return;
-                        }
-
-                        let status = validator
-                            .check_input(test_case, &output.unwrap())
-                            .expect("F");
-
-                        mutexed_tests.lock().unwrap().push(status);
+        problem
+            .test_cases
+            .par_iter()
+            .for_each(|test_case| match executor.execute(test_case) {
+                Ok(CodeExecutorResult { err, output }) => {
+                    if let Some(err) = err {
+                        mutexed_tests.lock().unwrap().push(TestCaseResult {
+                            status: err,
+                            id: test_case.id,
+                            output,
+                        });
+                        return;
                     }
-                    Err(v) => {
-                        dbg!(&v);
-                    }
-                });
 
-            let bind = mutexed_tests.lock().unwrap();
+                    let status = validator
+                        .check_input(test_case, &output.unwrap())
+                        .expect("F");
 
-            let overall_result_testcase = bind.iter().max_by_key(|testcase_result| {
-                STATUS_PRECEDENCE
-                    .get(&testcase_result.status)
-                    .unwrap_or(&10)
+                    mutexed_tests.lock().unwrap().push(status);
+                }
+                Err(v) => {
+                    dbg!(&v);
+                }
             });
 
-            let overall_result = if let Some(result) = overall_result_testcase {
-                result.status.to_owned()
-            } else {
-                Status::UnknownError("Status can't be infered".to_string())
-            };
+        let bind = mutexed_tests.lock().unwrap();
 
-            Ok(ProblemExecutorResult {
-                overall_result,
-                test_cases_results: bind.to_owned(),
-            })
+        let overall_result_testcase = bind.iter().max_by_key(|testcase_result| {
+            STATUS_PRECEDENCE
+                .get(&testcase_result.status)
+                .unwrap_or(&10)
+        });
+
+        let overall_result = if let Some(result) = overall_result_testcase {
+            result.status.to_owned()
+        } else {
+            Status::UnknownError("Status can't be infered".to_string())
+        };
+
+        Ok(ProblemExecutorResult {
+            overall_result,
+            test_cases_results: bind.to_owned(),
+        })
+        // }
+    }
+}
+
+// "optimization" maybe I'm not sure, try to not use Box
+fn get_executor(language: Language) -> Box<dyn CodeExecutorImpl> {
+    match language {
+        Language::Python3 => {
+            use crate::languages::python_3;
+            Box::new(CodeExecutor::<python_3::Python3>::new())
         }
+        Language::Cpp11 => {
+            use crate::languages::cpp;
+            Box::new(CodeExecutor::<cpp::Cpp11>::new())
+        }
+        Language::Cpp17 => {
+            use crate::languages::cpp;
+            Box::new(CodeExecutor::<cpp::Cpp17>::new())
+        }
+        _ => todo!(),
     }
 }

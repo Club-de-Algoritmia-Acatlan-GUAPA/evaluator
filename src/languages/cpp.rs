@@ -1,13 +1,12 @@
 use anyhow::Result;
 
+use crate::code_executor::{CodeExecutor, CodeExecutorResult, LanguageExecutor};
+use crate::types::Status;
 use std::{
     io::Read,
     os::unix::process::ExitStatusExt,
     process::{Command, ExitStatus, Output, Stdio},
 };
-
-use crate::code_executor::{CodeExecutor, CodeExecutorResult, LanguageExecutor};
-use crate::types::Status;
 
 trait Cpp {
     fn get_cpp_version(&self) -> String;
@@ -74,9 +73,9 @@ where
         });
 
         Ok(CodeExecutorResult {
-            err: status_result.then_some(Status::RuntimeError),
+            err: (!status_result).then_some(Status::RuntimeError),
             output: Some(Output {
-                status: if status_result {
+                status: if !status_result {
                     ExitStatus::from_raw(1)
                 } else {
                     status
@@ -98,7 +97,7 @@ where
 
 #[test]
 pub fn test_execute_function() -> Result<()> {
-    use crate::code_executor::CodeExecutor;
+    use crate::code_executor::{CodeExecutor, CodeExecutorImpl};
     use crate::utils::get_testcases;
     let code = r#"
     #include<bits/stdc++.h>

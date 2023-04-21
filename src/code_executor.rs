@@ -25,6 +25,18 @@ pub trait LanguageExecutor: Send + Sync {
     fn get_file_type() -> String;
 }
 
+pub trait CodeExecutorImpl: Send + Sync {
+    fn code(&mut self, code: String);
+
+    fn set_id(&mut self, id: i32);
+
+    fn create_code_file(&self) -> Result<()>;
+
+    fn prepare_code_env(&self) -> Result<CodeExecutorResult>;
+
+    fn execute(&self, test_case: &TestCase) -> Result<CodeExecutorResult>;
+}
+
 #[derive(Default, Debug)]
 pub struct CodeExecutor<L: ?Sized> {
     pub id: i32,
@@ -45,11 +57,17 @@ where
             ..Default::default()
         }
     }
-    pub fn code(&mut self, code: String) {
+}
+
+impl<L: Default> CodeExecutorImpl for CodeExecutor<L>
+where
+    Self: LanguageExecutor,
+{
+    fn code(&mut self, code: String) {
         self.code = code;
     }
 
-    pub fn set_id(&mut self, id: i32) {
+    fn set_id(&mut self, id: i32) {
         self.id = id;
     }
     fn create_code_file(&self) -> Result<()> {
@@ -58,12 +76,12 @@ where
         Ok(())
     }
 
-    pub fn prepare_code_env(&self) -> Result<CodeExecutorResult> {
+    fn prepare_code_env(&self) -> Result<CodeExecutorResult> {
         self.create_code_file()?;
         self.prepare()
     }
 
-    pub fn execute(&self, test_case: &TestCase) -> Result<CodeExecutorResult> {
+    fn execute(&self, test_case: &TestCase) -> Result<CodeExecutorResult> {
         let mut command = self.execute_command();
         run_and_meassure(
             command
