@@ -89,7 +89,6 @@ impl ProblemExecutor {
             overall_result,
             test_cases_results: bind.to_owned(),
         })
-        // }
     }
 }
 
