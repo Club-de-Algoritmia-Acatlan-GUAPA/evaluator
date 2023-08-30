@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use crate::code_executor::CodeExecutorResult;
-use crate::types::{Status, TestCase};
+use crate::types::Status;
 use std::io::{Read, Write};
 use std::os::unix::process::ExitStatusExt;
 use std::process::{Command, ExitStatus, Output, Stdio};
@@ -9,7 +9,8 @@ use std::time::{Duration, Instant};
 //
 //https://github.com/sharkdp/hyperfine/blob/2763b411afe0f035be1a6dcd304e4635d9b2ea47/src/timer/mod.rs
 
-pub fn run_and_meassure(command: &mut Command, test_case: &TestCase) -> Result<CodeExecutorResult> {
+pub fn run_and_meassure(command: &mut Command, input: String) -> Result<CodeExecutorResult> {
+
     let child = command
         .stdout(Stdio::piped())
         .stdin(Stdio::piped())
@@ -32,12 +33,10 @@ pub fn run_and_meassure(command: &mut Command, test_case: &TestCase) -> Result<C
             });
         }
     };
+
     let child_stdin = child.stdin.as_mut().expect("F");
 
-    if child_stdin
-        .write_all(test_case.input_case.as_bytes())
-        .is_err()
-    {
+    if child_stdin.write_all(input.as_bytes()).is_err() {
         return Ok(CodeExecutorResult {
             err: Some(Status::RuntimeError),
             output: Some(Output {

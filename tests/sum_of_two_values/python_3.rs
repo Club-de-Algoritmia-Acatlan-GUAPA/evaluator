@@ -58,7 +58,7 @@ fn evaluate_code(code: String) -> ProblemExecutorResult {
         checker: Some(get_checker()),
         validation_type: ValidatorType::TestLibChecker,
     };
-    let mut res = executor.execute(submission, problem).unwrap();
+    let mut res = executor.execute(&submission, problem).unwrap();
     res.test_cases_results = sort_by_id(res.test_cases_results);
     res.test_cases_results = output_to_none(sort_by_id(res.test_cases_results));
 

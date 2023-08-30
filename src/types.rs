@@ -6,14 +6,17 @@ use std::process::Output;
 
 use crate::back_to_enum;
 use crate::validator::ValidatorType;
-
-#[derive(Debug, Clone)]
-pub enum Language {
-    Python3,
-    Java,
-    Cpp11,
-    Cpp17,
-}
+use serde::{Deserialize, Serialize};
+use std::fmt;
+use primitypes::contest::Language;
+//#[derive(Debug, Clone, Serialize, Deserialize)]
+//#[serde(rename_all = "lowercase")]
+//pub enum Language {
+//    Python3,
+//    Java,
+//    Cpp11,
+//    Cpp17,
+//}
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Status {
     Accepted,
@@ -22,6 +25,18 @@ pub enum Status {
     PartialExecution,
     RuntimeError,
     UnknownError(String),
+}
+impl fmt::Display for Status {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Status::Accepted => write!(f, "Accepted"),
+            Status::WrongAnswer => write!(f, "WrongAnswer"),
+            Status::TimeLimitExceeded => write!(f, "TimeLimitExceeded"),
+            Status::PartialExecution => write!(f, "PartialExecution"),
+            Status::RuntimeError => write!(f, "RuntimeError"),
+            Status::UnknownError(e) => write!(f, "UnknownError({})", e),
+        }
+    }
 }
 
 lazy_static! {
@@ -70,11 +85,20 @@ pub struct Checker {
     pub checker: String,
 }
 
-#[derive(Debug, Clone)]
+//#[derive(Debug, Clone)]
+//pub struct Submission {
+//    pub language: Language,
+//    pub code: String,
+//    pub id: i32,
+//}
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Submission {
+    pub problem: String,
+    pub id: i32,
+    pub user: String,
+    pub contest_id: String,
     pub language: Language,
     pub code: String,
-    pub id: i32,
 }
 
 #[derive(Debug, Clone)]

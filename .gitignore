@@ -3,4 +3,6 @@
 
 !playground/testlib.h
 .vscode/
-*testlib
+testlib.h
+checker.cpp
+flamegraph.svg

@@ -1,71 +1,92 @@
 use evaluator::problem_executor::ProblemExecutor;
-use evaluator::types::{Checker, Language, PolicyExecution, Problem, Submission, TestCase};
+use evaluator::types::{Checker, PolicyExecution, Problem};
 use evaluator::utils;
 use evaluator::validator::ValidatorType;
-fn main() {
-    //TODO pre compile testlib
-    let files = utils::get_testcases_names("./tests/sum_of_two_values/stdio".to_string());
-    let mut test_cases = vec![];
-    files.iter().enumerate().for_each(|(idx, elem)| {
-        if elem.len() <= 1 {
-            return;
+use futures_lite::StreamExt;
+use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties, Result};
+use primitypes::contest::Submission;
+use redis::Client;
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let addr = "amqp://localhost:5672";
+    let con = ConnectionProperties::default()
+        .with_executor(tokio_executor_trait::Tokio::current())
+        .with_reactor(tokio_reactor_trait::Tokio);
+
+    let conn = Connection::connect(&addr, con).await?;
+
+    let channel = conn.create_channel().await?;
+    let mut consumer = channel
+        .basic_consume(
+            "submissions",
+            "my_consumer",
+            BasicConsumeOptions::default(),
+            FieldTable::default(),
+        )
+        .await?;
+
+    let client = Client::open("redis://127.0.0.1:6379").unwrap();
+    let mut conn = client.get_connection().unwrap();
+
+    loop {
+        let delivery = consumer.next().await;
+        if let Some(Ok(delivery)) = delivery {
+            delivery
+                .ack(BasicAckOptions::default())
+                .await
+                .expect("basic_ack");
+            //serde_json(str::from_utf8(&delivery.data).unwrap());
+            match serde_json::from_reader::<_, Submission>(&*delivery.data) {
+                Ok(res) => {
+                    //println!("{}", res.code);
+                    let executor = ProblemExecutor::new();
+                    let test_cases =
+                        utils::get_testcases("./tests/sum_of_two_values/stdio".to_string());
+                    let problem = Problem {
+                        id: "123123".to_string(),
+                        name: Some("Sum of Two Values".to_string()),
+                        policy_execution: PolicyExecution::Checker,
+                        system_policy: None,
+                        test_cases: test_cases.clone(),
+                        checker: Some(get_checker()),
+                        validation_type: ValidatorType::TestLibChecker,
+                    };
+                    let ans = executor.execute(&res, problem).unwrap();
+                    //println!("{:?}", res);
+                    dbg!(&ans);
+                    println!("---------------------------------");
+                    let mes: String = ans.overall_result.to_string();
+                    //println!("{ans:?} {:?}", ans.test_cases_results[10].output);
+                    let mut g: String = "".to_string();
+
+                    if let Some(output) = &ans.test_cases_results[20].output {
+                        //println!("{:?}", &ans.test_cases_results[20].output);
+                        g = String::from_utf8_lossy(&output.stderr).to_string();
+                    }
+                    println!("{}", format!("{mes}:{0}:{g}", res.id.as_u128()));
+
+                    redis::cmd("PUBLISH")
+                        .arg("channel_1")
+                        .arg(format!("{mes}:{0}:{g}", res.id.as_u128()))
+                        .execute(&mut conn);
+                    //match conn.publish::<_, _, i32>("canal_1", mes) {
+                    //    Ok(i) => {
+                    //        println!("{}", i);
+                    //    }
+                    //    Err(e) => {
+                    //        println!("{e}");
+                    //    }
+                    //};
+                }
+                Err(e) => {
+                    println!("{}", e);
+                }
+            }
+        } else {
+            println!("Erroooooor in consumer");
         }
-        test_cases.push(TestCase {
-            input_case: utils::file_to_string(elem[0].clone()), // input testcase
-            output_case: utils::file_to_string(elem[1].clone()), // input testcas
-            id: idx as i32,
-        });
-    });
-
-    let executor = ProblemExecutor::new();
-    for (idx, code) in vec![
-        get_code_runtime_error(),
-        get_code_runtime_error_in_some_cases(),
-        get_code_time_limit(),
-        get_code_accepted(),
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        let submission = Submission {
-            language: Language::Python3,
-            code,
-            id: idx as i32,
-        };
-        let problem = Problem {
-            id: "123123".to_string(),
-            name: Some("Sum of Two Values".to_string()),
-            policy_execution: PolicyExecution::Checker,
-            system_policy: None,
-            test_cases: test_cases.clone(),
-            checker: Some(get_checker()),
-            validation_type: ValidatorType::TestLibChecker,
-        };
-        let res = executor.execute(submission, problem).unwrap();
-        println!("{:?}", res.overall_result);
     }
-
-    for (idx, code) in vec![get_cpp_tle(), get_cpp_acc()].into_iter().enumerate() {
-        let submission = Submission {
-            language: Language::Cpp11,
-            code,
-            id: idx as i32,
-        };
-        let problem = Problem {
-            id: "123123".to_string(),
-            name: Some("Sum of Two Values".to_string()),
-            policy_execution: PolicyExecution::Checker,
-            system_policy: None,
-            test_cases: test_cases.clone(),
-            checker: Some(get_checker()),
-            validation_type: ValidatorType::TestLibChecker,
-        };
-        let res = executor.execute(submission, problem).unwrap();
-        dbg!(res);
-        // println!("{:?}", res.overall_result);
-        // println!("{:?}", res);
-    }
-    // todo!("Move all of this to a test");
 }
 
 fn get_code_runtime_error() -> String {
@@ -98,6 +119,7 @@ fn get_cpp_tle() -> String {
         for(int idx = 0; idx < n; idx++) { 
             for(int i = idx + 1 ; i < n ; i++) {
                 if(arr[i] + arr[idx] == target) { 
+
                     cout<<idx + 1 << " "<< i + 1;
                     return;
                 }
@@ -239,3 +261,65 @@ int main(int argc, char *argv[]) {
         .to_string(),
     }
 }
+//TODO pre compile testlib
+//let files = utils::get_testcases_names("./tests/sum_of_two_values/stdio".to_string());
+//let mut test_cases = vec![];
+//files.iter().enumerate().for_each(|(idx, elem)| {
+//    if elem.len() <= 1 {
+//        return;
+//    }
+//    test_cases.push(TestCase {
+//        input_case: utils::file_to_string(elem[0].clone()), // input testcase
+//        output_case: utils::file_to_string(elem[1].clone()), // input testcas
+//        id: idx as i32,
+//    });
+//});
+
+//let executor = ProblemExecutor::new();
+//for (idx, code) in vec![
+//    get_code_runtime_error(),
+//    get_code_runtime_error_in_some_cases(),
+//    get_code_time_limit(),
+//    get_code_accepted(),
+//]
+//.into_iter()
+//.enumerate()
+//{
+//    let submission = Submission {
+//        language: Language::Python3,
+//        code,
+//        id: idx as i32,
+//    };
+//    let problem = Problem {
+//        id: "123123".to_string(),
+//        name: Some("Sum of Two Values".to_string()),
+//        policy_execution: PolicyExecution::Checker,
+//        system_policy: None,
+//        test_cases: test_cases.clone(),
+//        checker: Some(get_checker()),
+//        validation_type: ValidatorType::TestLibChecker,
+//    };
+//    let res = executor.execute(&submission, problem).unwrap();
+//    println!("{:?}", res.overall_result);
+//}
+//for (idx, code) in vec![get_cpp_tle(), get_cpp_acc()].into_iter().enumerate() {
+//    let submission = Submission {
+//        language: Language::Cpp11,
+//        code,
+//        id: idx as i32,
+//    };
+//    let problem = Problem {
+//        id: "123123".to_string(),
+//        name: Some("Sum of Two Values".to_string()),
+
+//        system_policy: None
+//        test_cases: test_cases.clone(),
+//        checker: Some(get_checker()),
+//        validation_type: ValidatorType::TestLibChecker,
+//    };
+//    let res = executor.execute(submission, problem).unwrap();
+//    //dbg!(res);
+//    // println!("{:?}", res.overall_result);
+//    // println!("{:?}", res);
+//}
+// todo!("Move all of this to a test");

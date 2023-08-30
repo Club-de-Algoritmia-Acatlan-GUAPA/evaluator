@@ -35,18 +35,28 @@ where
         let mut command = Command::new("g++");
 
         // create executable
+        let file_name = if let Some(file_name) = self.file_name.as_ref() {
+            file_name.clone() + "." + Self::get_file_type().as_str()
+        } else {
+            format!("{}.{}", self.id, Self::get_file_type())
+        };
+
+        let exec_name = if let Some(file_name) = self.file_name.as_ref() {
+            file_name.clone()
+        } else {
+            self.id.to_string()
+        };
         let child = command
-            .current_dir("./playground")
+            .current_dir(format!("./{}", self.directory))
             .args(vec![
                 &self.get_cpp_version(),
-                &format!("{}.{}", self.id, Self::get_file_type()),
+                &file_name,
                 &"-o".to_string(),
-                &format!("{}", self.id),
+                &exec_name,
             ])
             .stdout(Stdio::piped())
             .stdin(Stdio::piped())
             .stderr(Stdio::piped());
-
         let mut child = match child.spawn() {
             Ok(child) => child,
             Err(v) => {
@@ -133,7 +143,7 @@ pub fn test_execute_function() -> Result<()> {
     executor.prepare_code_env()?;
 
     let _ = executor.prepare_code_env()?;
-    let res = executor.execute(&test_cases[21]);
+    let res = executor.execute(test_cases[21].input_case.clone(), vec![]);
     let _ = dbg!(res);
     Ok(())
 }
