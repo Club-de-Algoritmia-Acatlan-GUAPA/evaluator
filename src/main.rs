@@ -97,16 +97,16 @@ async fn main() -> Result<()> {
                                 .arg(format!("{mes}:{0}", res.id.as_u128()))
                                 .execute(&mut conn);
                             info!("NOTIFIED to redis on channel_1");
-                        }
+                        },
                         Err(e) => {
                             println!("{e:?}");
-                        }
+                        },
                     }
                     println!("---------------------------------");
-                }
+                },
                 Err(e) => {
                     println!("{}", e);
-                }
+                },
             }
         } else {
             println!("Erroooooor in consumer");

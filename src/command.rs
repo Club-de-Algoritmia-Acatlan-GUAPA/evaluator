@@ -43,6 +43,7 @@ impl JailedCommand {
         self.time_limit = time_limit;
         self
     }
+
     // Set name for input file
     pub fn input_file(mut self, input_file: &str) -> JailedCommand {
         self.input_file = input_file.to_string();
@@ -63,6 +64,7 @@ impl JailedCommand {
         self.stdout = Some(cfg.into());
         self
     }
+
     pub fn stdin<T: Into<Stdio>>(mut self, cfg: T) -> JailedCommand {
         self.stdin = Some(cfg.into());
         self

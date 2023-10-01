@@ -81,9 +81,11 @@ where
     fn get_file_type() -> String {
         "cpp".to_string()
     }
+
     fn is_compiled() -> bool {
         true
     }
+
     fn language() -> Language {
         Language::Cpp11
     }

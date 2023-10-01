@@ -10,7 +10,7 @@ pub async fn load_testcases<'a>(problem: &Problem) -> Result<()> {
     let dir = format!("./resources/{}", problem.problem_id.as_u32());
     if let Err(e) = create_dir(dir.as_str()).await {
         match e.kind() {
-            std::io::ErrorKind::AlreadyExists => {}
+            std::io::ErrorKind::AlreadyExists => {},
             _ => return Err(e.into()),
         };
     };

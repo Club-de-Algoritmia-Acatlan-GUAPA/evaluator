@@ -28,6 +28,7 @@ impl Validator {
             submission_id: submission_id.clone(),
         }
     }
+
     pub fn set_checker(&mut self, checker: Option<&Checker>) {
         self.checker = checker.cloned();
     }
@@ -55,6 +56,7 @@ impl Validator {
         }
         Ok(())
     }
+
     //fn testlib_check_input(
     //    &self,
     //    test_case: &TestCase,
@@ -65,16 +67,19 @@ impl Validator {
     //    //let input_file_name = format!("./resources/input_{}.in", test_case.id);
     //    //let mut input_file = fs::File::create(input_file_name)?;
     //    //input_file.write_all(test_case.input_case.as_bytes())?;
-    //    let input_file_name = format!("./resources/judge_input_{}.in", test_case.id);
+    //    let input_file_name = format!("./resources/judge_input_{}.in",
+    // test_case.id);
 
-    //    let user_output_file_name = format!("./playground/user_output_{}.out", test_case.id);
-    //    let mut user_output_file = fs::File::create(user_output_file_name)?;
-    //    user_output_file.write_all(user_output.as_bytes())?;
-    //    let user_output_file_name = format!("user_output_{}.out", test_case.id);
+    //    let user_output_file_name = format!("./playground/user_output_{}.out",
+    // test_case.id);    let mut user_output_file =
+    // fs::File::create(user_output_file_name)?;    user_output_file.
+    // write_all(user_output.as_bytes())?;    let user_output_file_name =
+    // format!("user_output_{}.out", test_case.id);
 
-    //    let judge_output_file_name = format!("./playground/judge_output_{}.out", test_case.id);
-    //    let mut judge_output_file = fs::File::create(judge_output_file_name)?;
-    //    judge_output_file.write_all(test_case.output_case.as_bytes())?;
+    //    let judge_output_file_name = format!("./playground/judge_output_{}.out",
+    // test_case.id);    let mut judge_output_file =
+    // fs::File::create(judge_output_file_name)?;    judge_output_file.
+    // write_all(test_case.output_case.as_bytes())?;
     //    let judge_output_file_name = format!("judge_output_{}.out", test_case.id);
 
     //    let output = Command::new("./checker")
@@ -119,8 +124,8 @@ impl Validator {
     //                output: Some(output),
     //            })
     //        }
-    //        Status::UnknownError(e) => return Err(TestCaseError::ExternalError(anyhow!(e))),
-    //        _ => {
+    //        Status::UnknownError(e) => return
+    // Err(TestCaseError::ExternalError(anyhow!(e))),        _ => {
     //            unreachable!()
     //        }
     //    }
@@ -186,7 +191,7 @@ impl Validator {
                     id: test_case.id,
                     output: Some(output),
                 }))
-            }
+            },
             s @ Status::Accepted => Ok(TestCaseResult {
                 status: s,
                 id: test_case.id,
@@ -195,9 +200,10 @@ impl Validator {
             Status::UnknownError(e) => Err(TestCaseError::ExternalError(anyhow!(e))),
             _ => {
                 unreachable!()
-            }
+            },
         }
     }
+
     fn literal_checker(&self, test_case: &TestCase) -> Result<TestCaseResult, TestCaseError> {
         let mut c = Command::new("/usr/bin/cmp");
 
@@ -246,7 +252,7 @@ impl Validator {
             Status::UnknownError(e) => Err(TestCaseError::ExternalError(anyhow!(e))),
             _ => {
                 unreachable!()
-            }
+            },
         }
     }
 }

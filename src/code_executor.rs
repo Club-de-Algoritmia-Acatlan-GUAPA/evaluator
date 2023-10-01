@@ -129,6 +129,7 @@ where
     fn directory(&mut self, directory: &str) {
         self.directory = directory.to_string();
     }
+
     async fn create_code_file(&self) -> Result<()> {
         let file_name = if let Some(file_name) = self.file_name.as_ref() {
             file_name.clone()
@@ -163,11 +164,13 @@ where
         self.create_code_file().await?;
         self.prepare()
     }
+
     async fn destroy(&self) -> Result<()> {
         let dir = format!("./playground/{}", self.id);
         info!("DESTROYING {}", dir);
         Ok(tokio::fs::remove_dir_all(dir).await?)
     }
+
     fn execute(
         &self,
         input_file: &str,
@@ -189,6 +192,7 @@ where
         debug!("EXECUTING command {:?}", command);
         crate::benchmark::run_and_meassure_2(&mut command)
     }
+
     // TODO remove all hardcoded strings
     fn execute_nsjail(
         &self,

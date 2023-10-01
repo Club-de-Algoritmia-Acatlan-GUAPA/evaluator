@@ -137,10 +137,10 @@ impl ProblemExecutor {
                                             id: test_case.id,
                                             output: e.output,
                                         })
-                                    }
+                                    },
                                     CodeExecutorError::ExternalError(e) => {
                                         TestCaseError::ExternalError(e)
-                                    }
+                                    },
                                 },
                             )?;
                         }
@@ -168,10 +168,10 @@ impl ProblemExecutor {
                                             id: test_case.id,
                                             output: e.output,
                                         })
-                                    }
+                                    },
                                     CodeExecutorError::ExternalError(e) => {
                                         TestCaseError::ExternalError(e)
-                                    }
+                                    },
                                 },
                             )?;
                         }
@@ -184,7 +184,7 @@ impl ProblemExecutor {
                                     output.stdout = user_output;
                                 }
                                 Ok(e)
-                            }
+                            },
                             Err(TestCaseError::InternalError(mut e)) => {
                                 if let Some(output) = e.output.as_mut() {
                                     let user_output =
@@ -192,7 +192,7 @@ impl ProblemExecutor {
                                     output.stdout = user_output;
                                 }
                                 Err(TestCaseError::InternalError(e))
-                            }
+                            },
                             s @ Err(TestCaseError::ExternalError(_)) => s,
                         }
                     })
@@ -252,19 +252,19 @@ fn get_executor(language: &Language) -> Box<dyn CodeExecutorImpl> {
         Language::Python3 => {
             use crate::languages::python_3;
             Box::new(CodeExecutor::<python_3::Python3>::new())
-        }
+        },
         Language::Cpp11 => {
             use crate::languages::cpp;
             Box::new(CodeExecutor::<cpp::Cpp11>::new())
-        }
+        },
         Language::Cpp17 => {
             use crate::languages::cpp;
             Box::new(CodeExecutor::<cpp::Cpp17>::new())
-        }
+        },
         Language::Java => {
             use crate::languages::java;
             Box::new(CodeExecutor::<java::Java>::new())
-        }
+        },
         _ => todo!(),
     }
 }

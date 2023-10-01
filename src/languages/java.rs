@@ -64,9 +64,11 @@ where
     fn get_file_type() -> String {
         "java".to_string()
     }
+
     fn is_compiled() -> bool {
         true
     }
+
     fn language() -> Language {
         Language::Java
     }

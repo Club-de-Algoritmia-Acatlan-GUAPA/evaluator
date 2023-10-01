@@ -46,7 +46,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
             config_dir =
                 dotenvy::var(CONFIGURATION_DIRECTORY).expect("CONFIGURATION_DIRECTORY is not set");
             config_file = dotenvy::var(CONFIGURATION_FILE).expect("CONFIGURATION_FILE is not set");
-        }
+        },
         Err(_) => {
             is_prod = std::env::var("IS_PROD")
                 .expect("IS_PROD is not set")
@@ -55,7 +55,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
             config_dir =
                 std::env::var(CONFIGURATION_DIRECTORY).expect("CONFIGURATION_DIRECTORY is not set");
             config_file = std::env::var(CONFIGURATION_FILE).expect("CONFIGURATION_FILE is not set");
-        }
+        },
     }
 
     let base_path = std::env::current_dir().expect("Failed to determine the current directory");
