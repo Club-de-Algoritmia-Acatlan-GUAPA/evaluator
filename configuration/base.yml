@@ -1,0 +1,15 @@
+is_prod: false
+redis:
+  host: 'localhost'
+  port: 6379
+  channel: 'channel_1'
+rabbitmq:
+  host: 'localhost'
+  queue: 'submissions'
+  consumer: 'consumer_1'
+  port: 5672
+postgres:
+  host: '127.0.0.1'
+  user: 'yollotl'
+  database: 'juezguapa'
+  port: 5432

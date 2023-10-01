@@ -1,0 +1,31 @@
+{
+  "db": "PostgreSQL",
+  "e992a0c15962f0d24c267e9a7ab80997b27184272690ac976f40f88efa8ebe02": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Bit",
+          "Json",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "pending",
+                  "accepted",
+                  "wrong_answer",
+                  "runtime_error",
+                  "unknwon_error",
+                  "partial_points"
+                ]
+              },
+              "name": "submission_status"
+            }
+          }
+        ]
+      }
+    },
+    "query": " \n                                UPDATE submission\n                                SET output = $2 , status = $3\n                                WHERE submission_id = $1\n                            "
+  }
+}

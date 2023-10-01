@@ -1,0 +1,15 @@
+is_prod: true
+redis:
+  host: 'host.docker.internal'
+  port: 6379
+  channel: 'channel_1'
+rabbitmq:
+  host: 'host.docker.internal'
+  queue: 'submissions'
+  consumer: 'consumer_1'
+  port: 5672
+postgres:
+  host: 'host.docker.internal'
+  user: 'yollotl'
+  database: 'juezguapa'
+  port: 5432

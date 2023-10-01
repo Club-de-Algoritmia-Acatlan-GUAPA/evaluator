@@ -1,107 +1,69 @@
 use anyhow::Result;
 
-use crate::code_executor::CodeExecutorResult;
-use crate::types::Status;
-use std::io::{Read, Write};
-use std::os::unix::process::ExitStatusExt;
-use std::process::{Command, ExitStatus, Output, Stdio};
-use std::time::{Duration, Instant};
-//
+use crate::code_executor::{CodeExecutorError, CodeExecutorInternalError, CodeExecutorResult};
+use crate::command::JailedCommand;
+use primitypes::status::Status;
+use std::process::Command;
+use std::process::Output;
+use std::time::Instant;
+use tracing::debug;
+
 //https://github.com/sharkdp/hyperfine/blob/2763b411afe0f035be1a6dcd304e4635d9b2ea47/src/timer/mod.rs
 
-pub fn run_and_meassure(command: &mut Command, input: String) -> Result<CodeExecutorResult> {
-
-    let child = command
-        .stdout(Stdio::piped())
-        .stdin(Stdio::piped())
-        .stderr(Stdio::piped());
-
-    let one_sec = Duration::from_secs(1);
-    let now = Instant::now();
+pub fn run_and_meassure(command: JailedCommand) -> Result<CodeExecutorResult, CodeExecutorError> {
     // spawn
-    let mut child = match child.spawn() {
-        Ok(child) => child,
-        Err(v) => {
-            dbg!(&v);
-            return Ok(CodeExecutorResult {
-                err: Some(Status::RuntimeError),
-                output: Some(Output {
-                    status: ExitStatus::from_raw(1),
-                    stdout: v.to_string().as_bytes().to_vec(),
-                    stderr: vec![],
-                }),
-            });
-        }
-    };
+    let start = Instant::now();
+    let output = command.output()?;
+    let duration = start.elapsed();
 
-    let child_stdin = child.stdin.as_mut().expect("F");
-
-    if child_stdin.write_all(input.as_bytes()).is_err() {
-        return Ok(CodeExecutorResult {
-            err: Some(Status::RuntimeError),
-            output: Some(Output {
-                status: ExitStatus::from_raw(1),
-                stdout: child
-                    .stdout
-                    .unwrap()
-                    .bytes()
-                    .filter_map(|x| x.ok())
-                    .collect::<Vec<_>>(),
-                stderr: child
-                    .stderr
-                    .unwrap()
-                    .bytes()
-                    .filter_map(|x| x.ok())
-                    .collect::<Vec<_>>(),
-            }),
-        });
+    debug!("Output {:?}", output);
+    if output.status.success() {
+        Ok(CodeExecutorResult {
+            status: Some(output.status),
+            output: Some(output),
+            duration,
+        })
+    } else {
+        Err(CodeExecutorError::InternalError(
+            CodeExecutorInternalError {
+                status: match_stderr(&output),
+                output: Some(output),
+                duration,
+            },
+        ))
     }
+}
 
-    loop {
-        let result = child.try_wait();
-
-        match result {
-            Ok(Some(_)) => {
-                break;
-            }
-            Ok(None) => {
-                if now.elapsed() > one_sec {
-                    child.kill()?;
-                    return Ok(CodeExecutorResult {
-                        err: Some(Status::TimeLimitExceeded),
-                        output: None,
-                    });
-                }
-            }
-            Err(e) => {
-                panic!("Error: {e}");
-            }
-        }
+fn match_stderr(output: &Output) -> Status {
+    let stderr = String::from_utf8_lossy(output.stderr.as_slice());
+    if stderr.starts_with("[>>EVALUATOR<<][TIME_LIMIT]") {
+        Status::TimeLimitExceeded
+    } else {
+        Status::RuntimeError
     }
-    let status = child.wait().unwrap();
-    let stdout = child.stdout.unwrap();
-    let mut stderr = vec![];
+}
 
-    if !status.success() {
-        return Ok(CodeExecutorResult {
-            err: Some(Status::RuntimeError),
-            output: Some(Output {
-                status,
-                stdout: stdout.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>(),
-                stderr: vec![],
-            }),
-        });
-    }
-    if let Some(v) = child.stderr {
-        stderr = v.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>();
-    }
+pub fn run_and_meassure_2(command: &mut Command) -> Result<CodeExecutorResult, CodeExecutorError> {
+    // spawn
 
-    Ok(CodeExecutorResult {
-        err: None,
-        output: Some(Output {
-            status,
-            stdout: stdout.bytes().filter_map(|x| x.ok()).collect::<Vec<_>>(),
-            stderr,
-        }),
-    })
+    let start = Instant::now();
+    let output = command.output()?;
+    let duration = start.elapsed();
+
+    debug!("Output {:?}", output);
+    if output.status.success() {
+        Ok(CodeExecutorResult {
+            status: Some(output.status),
+            output: Some(output),
+            duration,
+        })
+    } else {
+        Err(CodeExecutorError::InternalError(
+            CodeExecutorInternalError {
+                status: match_stderr(&output),
+                output: Some(output),
+                duration,
+            },
+        ))
+    }
 }

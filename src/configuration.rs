@@ -1,99 +1,74 @@
-use config::Config;
+use anyhow::Result;
+use config::{Config, FileFormat};
+use dotenvy::dotenv;
+
+const CONFIGURATION_DIRECTORY: &str = "CONFIGURATION_DIRECTORY";
+const CONFIGURATION_FILE: &str = "CONFIGURATION_FILE";
 
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
-    pub application_port: u16,
-    pub queue: DatabaseSettings,
+    pub is_prod: bool,
+    pub redis: RedisSettings,
+    pub rabbitmq: RabbitMqSettings,
+    pub postgres: PostgresSettings,
 }
 
 #[derive(serde::Deserialize, Clone)]
-pub struct DatabaseSettings {
-    pub username: String,
-    pub password: String,
-    pub port: u16,
-    pub host: String,
-    pub database_name: String,
-    pub require_ssl: bool
+pub struct RedisSettings {
+    pub host : String,
+    pub port : usize,
+    pub channel : String
 }
 
-impl DatabaseSettings {
-    pub fn connection_url(&self) -> String {
-        if self.password.len() == 0 {
-            return format!(
-                "postgres://{}@{}:{}/{}",
-                self.username, self.host, self.port, self.database_name
-            );
-        }
-        format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.username, self.password, self.host, self.port, self.database_name
-        )
-    }
-    pub fn without_db(&self) -> PgConnectOptions {
-        let ssl_mode = if self.require_ssl {
-            PgSslMode::Require
-        } else {
-            PgSslMode::Prefer
-        };
-        PgConnectOptions::new()
-            .host(&self.host)
-            .username(&self.username)
-            .password(self.password.as_str())
-            .port(self.port)
-            .ssl_mode(ssl_mode)
-    }
-
-    pub fn with_db(&self) -> PgConnectOptions {
-        let options = self.without_db().database(&self.database_name);
-        options
-    }
+#[derive(serde::Deserialize, Clone)]
+pub struct RabbitMqSettings {
+    pub host : String,
+    pub queue : String,
+    pub consumer : String,
+    pub port : usize,
+}
+#[derive(serde::Deserialize, Clone)]
+pub struct PostgresSettings {
+    pub host : String,
+    pub user : String,
+    pub database : String,
+    pub port : usize,
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
-    // Initialise our configuration reader
+    let (is_prod, config_dir, config_file);
+    match dotenv() {
+        Ok(_) => {
+            is_prod = dotenvy::var("IS_PROD")
+                .expect("IS_PROD is not set")
+                .parse::<bool>()
+                .unwrap();
+            config_dir =
+                dotenvy::var(CONFIGURATION_DIRECTORY).expect("CONFIGURATION_DIRECTORY is not set");
+            config_file = dotenvy::var(CONFIGURATION_FILE).expect("CONFIGURATION_FILE is not set");
+        }
+        Err(_) => {
+            is_prod = std::env::var("IS_PROD")
+                .expect("IS_PROD is not set")
+                .parse::<bool>()
+                .unwrap();
+            config_dir =
+                std::env::var(CONFIGURATION_DIRECTORY).expect("CONFIGURATION_DIRECTORY is not set");
+            config_file = std::env::var(CONFIGURATION_FILE).expect("CONFIGURATION_FILE is not set");
+        }
+    }
+
     let base_path = std::env::current_dir().expect("Failed to determine the current directory");
-    let configuration_directory = base_path.join("configuration");
+    let configuration_directory = base_path.join(config_dir);
 
     let settings = Config::builder()
-        .add_source(config::File::from(
-            configuration_directory.join("base.yaml"),
-        ))
+        .add_source(
+            config::File::from(configuration_directory.join(config_file)).format(FileFormat::Yaml),
+        )
         .build()?;
 
-    settings.try_deserialize()
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::configuration::DatabaseSettings;
-
-    #[test]
-    fn test_connection_url() {
-        let config = DatabaseSettings {
-            username: "yollotlfe".to_string(),
-            password: "".to_string(),
-            port: 8000,
-            host: "localhost".to_string(),
-            database_name: "juezguapa".to_string(),
-            require_ssl: true,
-        };
-        assert_eq!(
-            config.connection_url(),
-            "postgres://yollotlfe@localhost:8000/juezguapa".to_string()
-        );
-
-        let config = DatabaseSettings {
-            username: "yollotlfe".to_string(),
-            password: "lolo".to_string(),
-            port: 8000,
-            host: "127.0.0.1".to_string(),
-            database_name: "juezguapa".to_string(),
-            require_ssl: true,
-        };
-
-        assert_eq!(
-            config.connection_url(),
-            "postgres://yollotlfe:lolo@127.0.0.1:8000/juezguapa".to_string()
-        );
-    }
+    settings.try_deserialize::<Settings>().map(|s| Settings {
+        is_prod,
+        ..s
+    })
 }

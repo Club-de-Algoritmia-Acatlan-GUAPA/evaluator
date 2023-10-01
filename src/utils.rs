@@ -1,11 +1,19 @@
+use anyhow::Result;
 use regex::Regex;
 use slice_group_by::GroupBy;
-
 use std::fs;
 
-use crate::types::TestCase;
+use primitypes::problem::STestCase;
 
 pub fn file_to_string(path: String) -> String {
+    let file = fs::read(path).unwrap();
+    String::from_utf8_lossy(&file).to_string()
+}
+pub fn file_to_bytes(path: String) -> Result<Vec<u8>> {
+    let file = fs::read(path)?;
+    Ok(String::from_utf8_lossy(&file).as_bytes().to_vec())
+}
+pub fn bytes_to_str(path: String) -> String {
     let file = fs::read(path).unwrap();
     String::from_utf8_lossy(&file).to_string()
 }
@@ -58,14 +66,14 @@ pub fn get_testcases_names(path: String) -> Vec<Vec<String>> {
     res
 }
 
-pub fn get_testcases(path: String) -> Vec<TestCase> {
+pub fn get_testcases(path: String) -> Vec<STestCase> {
     let files = get_testcases_names(path);
     let mut test_cases = vec![];
     files.iter().enumerate().for_each(|(idx, elem)| {
         if elem.len() <= 1 {
             return;
         }
-        test_cases.push(TestCase {
+        test_cases.push(STestCase {
             input_case: file_to_string(elem[0].clone()), // input testcase
             output_case: file_to_string(elem[1].clone()), // input testcas
             id: idx as i32,

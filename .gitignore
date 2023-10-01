@@ -6,3 +6,4 @@
 testlib.h
 checker.cpp
 flamegraph.svg
+.DS_Store
