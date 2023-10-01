@@ -1,8 +1,12 @@
 use anyhow::Result;
 use itertools::{Either, Itertools};
+use primitypes::{
+    contest::{Language, Submission},
+    problem::{Problem, ProblemExecutorResult, TestCaseResult},
+    status::{Status, STATUS_PRECEDENCE},
+};
 use rayon::prelude::*;
-
-use primitypes::contest::{Language, Submission};
+use tracing::{info, instrument};
 
 use crate::{
     code_executor::{CodeExecutor, CodeExecutorError, CodeExecutorImpl},
@@ -11,12 +15,6 @@ use crate::{
     utils::file_to_bytes,
     validator::Validator,
 };
-use primitypes::problem::Problem;
-use primitypes::{
-    problem::{ProblemExecutorResult, TestCaseResult},
-    status::{Status, STATUS_PRECEDENCE},
-};
-use tracing::{info, instrument};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ProblemExecutor;
@@ -127,7 +125,10 @@ impl ProblemExecutor {
                                 problem.problem_id.as_u32(),
                                 test_case.id.to_string().as_str()
                             );
-                            info!("EXECUTING input_file =  {}, output_file = {} ", input_file, output_file);
+                            info!(
+                                "EXECUTING input_file =  {}, output_file = {} ",
+                                input_file, output_file
+                            );
                             _ = executor.execute_nsjail(&input_file, &output_file).map_err(
                                 |op| match op {
                                     CodeExecutorError::InternalError(e) => {
@@ -155,7 +156,10 @@ impl ProblemExecutor {
                                 problem.problem_id.as_u32(),
                                 test_case.id.to_string().as_str()
                             );
-                            info!("EXECUTING input_file =  {}, output_file = {} ", input_file, output_file);
+                            info!(
+                                "EXECUTING input_file =  {}, output_file = {} ",
+                                input_file, output_file
+                            );
                             _ = executor.execute(&input_file, &output_file).map_err(
                                 |op| match op {
                                     CodeExecutorError::InternalError(e) => {

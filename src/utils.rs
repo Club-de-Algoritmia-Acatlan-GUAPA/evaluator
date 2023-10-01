@@ -1,9 +1,9 @@
-use anyhow::Result;
-use regex::Regex;
-use slice_group_by::GroupBy;
 use std::fs;
 
+use anyhow::Result;
 use primitypes::problem::STestCase;
+use regex::Regex;
+use slice_group_by::GroupBy;
 
 pub fn file_to_string(path: String) -> String {
     let file = fs::read(path).unwrap();

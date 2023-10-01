@@ -1,1 +1,1 @@
-pub const NSJAIL_DIR : &str = "/bin/nsjail";
+pub const NSJAIL_DIR: &str = "/bin/nsjail";

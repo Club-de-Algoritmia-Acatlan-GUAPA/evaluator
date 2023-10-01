@@ -1,15 +1,12 @@
-use anyhow::{anyhow, Result};
-
 use std::process::{Command, Stdio};
 
-use crate::code_executor::CodeExecutorError;
-use primitypes::problem::{Checker, ProblemID, SubmissionID, TestCase, ValidatorType};
+use anyhow::{anyhow, Result};
 use primitypes::{
-    problem::TestCaseResult,
+    problem::{Checker, ProblemID, SubmissionID, TestCase, TestCaseResult, ValidatorType},
     status::{CmpExitCodes, Status, TestLibExitCodes},
 };
 
-use crate::types::TestCaseError;
+use crate::{code_executor::CodeExecutorError, types::TestCaseError};
 #[derive(Clone)]
 pub struct Validator {
     validation_type: ValidatorType,

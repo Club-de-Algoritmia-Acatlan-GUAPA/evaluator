@@ -1,12 +1,16 @@
-use anyhow::Result;
+use std::{
+    process::{Command, Output},
+    time::Instant,
+};
 
-use crate::code_executor::{CodeExecutorError, CodeExecutorInternalError, CodeExecutorResult};
-use crate::command::JailedCommand;
+use anyhow::Result;
 use primitypes::status::Status;
-use std::process::Command;
-use std::process::Output;
-use std::time::Instant;
 use tracing::debug;
+
+use crate::{
+    code_executor::{CodeExecutorError, CodeExecutorInternalError, CodeExecutorResult},
+    command::JailedCommand,
+};
 
 //https://github.com/sharkdp/hyperfine/blob/2763b411afe0f035be1a6dcd304e4635d9b2ea47/src/timer/mod.rs
 

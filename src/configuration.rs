@@ -15,24 +15,24 @@ pub struct Settings {
 
 #[derive(serde::Deserialize, Clone)]
 pub struct RedisSettings {
-    pub host : String,
-    pub port : usize,
-    pub channel : String
+    pub host: String,
+    pub port: usize,
+    pub channel: String,
 }
 
 #[derive(serde::Deserialize, Clone)]
 pub struct RabbitMqSettings {
-    pub host : String,
-    pub queue : String,
-    pub consumer : String,
-    pub port : usize,
+    pub host: String,
+    pub queue: String,
+    pub consumer: String,
+    pub port: usize,
 }
 #[derive(serde::Deserialize, Clone)]
 pub struct PostgresSettings {
-    pub host : String,
-    pub user : String,
-    pub database : String,
-    pub port : usize,
+    pub host: String,
+    pub user: String,
+    pub database: String,
+    pub port: usize,
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
@@ -67,8 +67,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         )
         .build()?;
 
-    settings.try_deserialize::<Settings>().map(|s| Settings {
-        is_prod,
-        ..s
-    })
+    settings
+        .try_deserialize::<Settings>()
+        .map(|s| Settings { is_prod, ..s })
 }

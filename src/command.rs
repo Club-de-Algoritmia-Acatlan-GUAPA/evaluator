@@ -1,5 +1,6 @@
-use crate::consts::NSJAIL_DIR;
 use std::process::{Child, Command, Output, Stdio};
+
+use crate::consts::NSJAIL_DIR;
 #[derive(Default, Debug)]
 pub struct JailedCommand {
     mounted_directories: Vec<[String; 2]>,

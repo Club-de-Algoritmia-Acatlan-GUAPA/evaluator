@@ -1,9 +1,10 @@
 use anyhow::Result;
 use futures::{stream, StreamExt, TryStreamExt};
-use primitypes::problem::Problem;
-use primitypes::problem::TestCase;
-use tokio::fs::{create_dir, File};
-use tokio::{fs::OpenOptions, io::AsyncWriteExt};
+use primitypes::problem::{Problem, TestCase};
+use tokio::{
+    fs::{create_dir, File, OpenOptions},
+    io::AsyncWriteExt,
+};
 
 pub async fn load_testcases<'a>(problem: &Problem) -> Result<()> {
     let dir = format!("./resources/{}", problem.problem_id.as_u32());

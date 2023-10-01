@@ -1,10 +1,12 @@
-use anyhow::Result;
-
-use crate::code_executor::{CodeExecutor, CodeExecutorError, CodeExecutorResult, LanguageExecutor};
-use primitypes::{contest::Language, status::Status};
 use std::process::{Command, Stdio};
 
-use crate::command::JailedCommand;
+use anyhow::Result;
+use primitypes::{contest::Language, status::Status};
+
+use crate::{
+    code_executor::{CodeExecutor, CodeExecutorError, CodeExecutorResult, LanguageExecutor},
+    command::JailedCommand,
+};
 
 #[derive(Default, Clone)]
 pub struct Java;

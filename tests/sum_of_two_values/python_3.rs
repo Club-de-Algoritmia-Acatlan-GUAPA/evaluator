@@ -1,16 +1,21 @@
-use crate::sum_of_two_values::expected_response;
-use evaluator::problem_executor::ProblemExecutor;
-use evaluator::types::{Checker, PolicyExecution, Problem, ProblemExecutorResult, TestCaseResult};
-use evaluator::utils::get_testcases;
-use evaluator::validator::ValidatorType;
+use evaluator::{
+    problem_executor::ProblemExecutor,
+    types::{Checker, PolicyExecution, Problem, ProblemExecutorResult, TestCaseResult},
+    utils::get_testcases,
+    validator::ValidatorType,
+};
 use expected_response::{
     get_expected_accepted, get_expected_partial_runtime_error, get_expected_runtime_error,
     get_expected_time_limit,
 };
 use pretty_assertions::assert_eq;
-use primitypes::contest::{Language, Submission};
-use primitypes::problem::{ContestId, ProblemID, SubmissionID};
+use primitypes::{
+    contest::{Language, Submission},
+    problem::{ContestId, ProblemID, SubmissionID},
+};
 use uuid::Uuid;
+
+use crate::sum_of_two_values::expected_response;
 #[test]
 fn test_runtime_error() {
     assert_eq!(

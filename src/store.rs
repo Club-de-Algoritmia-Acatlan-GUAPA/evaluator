@@ -1,5 +1,6 @@
-use primitypes::problem::{Checker, PolicyExecution, Problem, ProblemID, TestCase, ValidatorType};
 use std::collections::HashMap;
+
+use primitypes::problem::{Checker, PolicyExecution, Problem, ProblemID, TestCase, ValidatorType};
 
 pub struct ProblemStore {
     pub store: HashMap<ProblemID, Problem>,
