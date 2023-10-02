@@ -4,8 +4,9 @@ FROM ubuntu:22.04 as base
 
 #RUN apt-get -y update && apt-get install -y \
 
-
-RUN apt-get -y update && apt-get install -y \
+RUN  \
+    --mount=type=cache,target=/var/cache/apt \
+    apt-get -y update && apt-get install -y \
     autoconf \
     bison \
     flex \
@@ -22,16 +23,21 @@ RUN apt-get -y update && apt-get install -y \
     curl \
     default-jre \
     default-jdk \
-
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    vim \
+    ca-certificates \
+    &&  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN  apt-get install -y vim
-RUN apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY ./evaluator/nsjail /nsjail
 
-
 FROM base AS maker
+#RUN apt-get install -y \
+#	make \
+#	git \
+#	pkg-config \
+#	flex \
+#	bison \
+#    	protobuf-compiler  
 
 RUN cd /nsjail && make && mv /nsjail/nsjail /bin && rm -rf -- /nsjail
 

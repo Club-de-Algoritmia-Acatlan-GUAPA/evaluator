@@ -201,8 +201,6 @@ where
     ) -> Result<CodeExecutorResult, CodeExecutorError> {
         debug!("CREATING file = {}", output_file);
         let output = std::fs::File::create(output_file)?;
-        debug!("OPENING file = {}", output_file);
-        let input = std::fs::File::open(input_file)?;
         let command = self
             .nsjail_execute_command()
             .current_dir("/app/evaluator")
@@ -210,7 +208,7 @@ where
             .mount("/app/evaluator/playground/", "/playground")
             .config_file("/app/evaluator/resources/nsjail.cfg")
             .arg("<")
-            .stdin(input)
+            .arg(input_file)
             .stdout(output);
         debug!("EXECUTING command {:?}", command);
         crate::benchmark::run_and_meassure(command)
