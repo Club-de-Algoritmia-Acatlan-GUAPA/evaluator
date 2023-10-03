@@ -11,3 +11,4 @@ pub mod testcase;
 pub mod types;
 pub mod utils;
 pub mod validator;
+pub mod cli;

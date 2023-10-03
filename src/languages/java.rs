@@ -57,7 +57,7 @@ where
     fn nsjail_execute_command(&self) -> JailedCommand {
         JailedCommand::new("/usr/bin/java".to_string())
             .arg("-cp")
-            .arg(&format!("/playground/{}/Main", self.id))
+            .arg(&format!("/playground/{}", self.id))
             .arg("Main")
     }
 

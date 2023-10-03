@@ -1,5 +1,6 @@
 use anyhow::Context;
 use evaluator::{
+    cli::get_tracing_mode,
     configuration::get_configuration,
     problem_executor::{ProblemExecutor, ProblemExecutorError},
     store::ProblemStore,
@@ -13,12 +14,14 @@ use primitypes::{
 use redis::Client;
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
-use tracing::{debug, info, instrument, Level};
-
+use tracing::{debug, info, instrument};
 #[tokio::main]
 #[instrument]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
+    let tracing_mode = get_tracing_mode();
+    tracing_subscriber::fmt()
+        .with_max_level(tracing_mode)
+        .init();
 
     let config = get_configuration().expect("Unable to get configuration");
 
