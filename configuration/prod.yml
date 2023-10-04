@@ -1,15 +1,16 @@
 is_prod: true
 redis:
   host: 'host.docker.internal'
-  port: 6379
+  port: 9999
   channel: 'channel_1'
 rabbitmq:
   host: 'host.docker.internal'
   queue: 'submissions'
   consumer: 'consumer_1'
-  port: 5672
+  port: 8778
 postgres:
   host: 'host.docker.internal'
-  user: 'yollotl'
+  user: 'postgres'
+  password: 'password'
   database: 'juezguapa'
-  port: 5432
+  port: 8787

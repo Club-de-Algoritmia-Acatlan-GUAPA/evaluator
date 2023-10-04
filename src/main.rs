@@ -48,8 +48,8 @@ async fn main() -> Result<()> {
     info!("RUNNING redis on {}", addr);
 
     let pg_uri = format!(
-        "postgres://{}@{}:{}/{}",
-        config.postgres.user, config.postgres.host, config.postgres.port, config.postgres.database
+        "postgres://{}:{}@{}:{}/{}",
+        config.postgres.user,config.postgres.password, config.postgres.host, config.postgres.port, config.postgres.database
     );
     let pool = PgPoolOptions::new()
         .max_connections(5)

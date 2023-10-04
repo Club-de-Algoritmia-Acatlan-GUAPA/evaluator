@@ -40,9 +40,24 @@ FROM base AS maker
 #    	protobuf-compiler  
 
 RUN cd /nsjail && make && mv /nsjail/nsjail /bin && rm -rf -- /nsjail
-FROM base as rust_cmp
+
+FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
+WORKDIR /app
+
+FROM chef AS planner
 COPY ./evaluator /app/evaluator
 COPY ./primitypes /app/primitypes
+WORKDIR /app/evaluator
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+COPY --from=planner /app/evaluator/recipe.json /app/evaluator/recipe.json
+WORKDIR /app/evaluator
+COPY ./primitypes /app/primitypes
+RUN cargo chef cook --release --recipe-path recipe.json
+COPY ./evaluator /app/evaluator
+RUN cargo build --release --bin evaluator
+
 
 FROM base as end
 COPY --from=maker /lib/aarch64-linux-gnu/libprotobuf.so.23 /lib/aarch64-linux-gnu/libprotobuf.so.23 
@@ -54,10 +69,14 @@ COPY --from=maker /lib/aarch64-linux-gnu/libz.so.1 /lib/aarch64-linux-gnu/libz.s
 COPY --from=maker /lib/ld-linux-aarch64.so.1 /lib/ld-linux-aarch64.so.1 
 COPY --from=maker /lib/aarch64-linux-gnu/libgcc_s.so.1 /lib/aarch64-linux-gnu/libgcc_s.so.1 
 COPY --from=maker /lib/aarch64-linux-gnu/libm.so.6 /lib/aarch64-linux-gnu/libm.so.6 
-COPY ./evaluator /app/evaluator
-COPY ./primitypes /app/primitypes
+
 ENV IS_PROD=true
-ENV CONFIGURATION_DIRECTORY="configuration"
+ENV CONFIGURATION_DIRECTORY="/app/evaluator/configuration"
 ENV CONFIGURATION_FILE="prod.yml"
+COPY --from=builder /app/evaluator/target/release/evaluator /app/evaluator/evaluator
 COPY --from=maker /bin/nsjail /bin/nsjail
-#ENTRYPOINT ["/app/evaluator/evaluator"]
+#COPY ./evaluator/configuration /app/evaluator/configuration
+COPY ./evaluator/playground /app/evaluator/playground
+COPY ./evaluator/resources /app/evaluator/resources
+WORKDIR /app/evaluator
+ENTRYPOINT ["/app/evaluator/evaluator"]

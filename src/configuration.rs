@@ -33,6 +33,7 @@ pub struct PostgresSettings {
     pub user: String,
     pub database: String,
     pub port: usize,
+    pub password: String,
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
