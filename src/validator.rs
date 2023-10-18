@@ -5,6 +5,7 @@ use primitypes::{
     problem::{Checker, ProblemID, SubmissionID, TestCase, TestCaseResult, ValidatorType},
     status::{CmpExitCodes, Status, TestLibExitCodes},
 };
+use tokio::fs::metadata;
 
 use crate::{code_executor::CodeExecutorError, types::TestCaseError};
 #[derive(Clone)]
@@ -43,6 +44,13 @@ impl Validator {
     pub async fn prepare_validator(&mut self) -> Result<(), CodeExecutorError> {
         println!("PREPARING");
         if let ValidatorType::TestLibChecker = self.validation_type {
+            if let Ok(metadata) =
+                metadata(format!("./resources/{}/checker", self.problem_id.as_u32())).await
+            {
+                if metadata.is_file() {
+                    return Ok(());
+                }
+            };
             let dir = format!("./resources/{}", self.problem_id.as_u32());
 
             let o = Command::new("/usr/bin/g++")
@@ -57,83 +65,7 @@ impl Validator {
         Ok(())
     }
 
-    //fn testlib_check_input(
-    //    &self,
-    //    test_case: &TestCase,
-    //    _output: &Output,
-    //) -> Result<TestCaseResult, TestCaseError> {
-    //    let user_output = String::from_utf8_lossy(&_output.stdout);
-
-    //    //let input_file_name = format!("./resources/input_{}.in", test_case.id);
-    //    //let mut input_file = fs::File::create(input_file_name)?;
-    //    //input_file.write_all(test_case.input_case.as_bytes())?;
-    //    let input_file_name = format!("./resources/judge_input_{}.in",
-    // test_case.id);
-
-    //    let user_output_file_name = format!("./playground/user_output_{}.out",
-    // test_case.id);    let mut user_output_file =
-    // fs::File::create(user_output_file_name)?;    user_output_file.
-    // write_all(user_output.as_bytes())?;    let user_output_file_name =
-    // format!("user_output_{}.out", test_case.id);
-
-    //    let judge_output_file_name = format!("./playground/judge_output_{}.out",
-    // test_case.id);    let mut judge_output_file =
-    // fs::File::create(judge_output_file_name)?;    judge_output_file.
-    // write_all(test_case.output_case.as_bytes())?;
-    //    let judge_output_file_name = format!("judge_output_{}.out", test_case.id);
-
-    //    let output = Command::new("./checker")
-    //        .current_dir("./playground")
-    //        .args(vec![
-    //            input_file_name,
-    //            user_output_file_name,
-    //            judge_output_file_name,
-    //        ])
-    //        .stdin(Stdio::piped())
-    //        .stdout(Stdio::piped())
-    //        .stderr(Stdio::piped())
-    //        .output()?;
-
-    //    let status_code = output.status.code();
-
-    //    let status = match status_code {
-    //        Some(res) => match res.try_into() {
-    //            Ok(TestLibExitCodes::Accepted) => Status::Accepted,
-    //            Ok(TestLibExitCodes::WrongAnswer) => Status::WrongAnswer,
-    //            Ok(TestLibExitCodes::PartialExecution) => Status::PartialPoints,
-    //            Ok(TestLibExitCodes::FormatError) => Status::WrongAnswer,
-    //            Err(v) => Status::UnknownError(format!("found {v:?}")),
-    //        },
-    //        None => Status::UnknownError("testlib execution fails".to_string()),
-    //    };
-
-    //    match status {
-    //        s @ Status::WrongAnswer
-    //        | s @ Status::TimeLimitExceeded
-    //        | s @ Status::PartialPoints => {
-    //            return Err(TestCaseError::InternalError(TestCaseResult {
-    //                status: s,
-    //                id: test_case.id,
-    //                output: Some(output),
-    //            }))
-    //        }
-    //        s @ Status::Accepted => {
-    //            return Ok(TestCaseResult {
-    //                status: s,
-    //                id: test_case.id,
-    //                output: Some(output),
-    //            })
-    //        }
-    //        Status::UnknownError(e) => return
-    // Err(TestCaseError::ExternalError(anyhow!(e))),        _ => {
-    //            unreachable!()
-    //        }
-    //    }
-    //}
     fn testlib_check_input_2(&self, test_case: &TestCase) -> Result<TestCaseResult, TestCaseError> {
-        //let input_file_name = format!("./resources/input_{}.in", test_case.id);
-        //let mut input_file = fs::File::create(input_file_name)?;
-        //input_file.write_all(test_case.input_case.as_bytes())?;
         println!("VALIDATING");
         let judge_input_file_name = format!(
             "./resources/{}/input_{}.in",

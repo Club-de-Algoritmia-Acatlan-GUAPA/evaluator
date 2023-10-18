@@ -11,9 +11,7 @@ use crate::{
     code_executor::{CodeExecutorError, CodeExecutorInternalError, CodeExecutorResult},
     command::JailedCommand,
 };
-
 //https://github.com/sharkdp/hyperfine/blob/2763b411afe0f035be1a6dcd304e4635d9b2ea47/src/timer/mod.rs
-
 pub fn run_and_meassure(command: JailedCommand) -> Result<CodeExecutorResult, CodeExecutorError> {
     // spawn
     let start = Instant::now();
