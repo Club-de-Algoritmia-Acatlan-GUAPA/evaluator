@@ -85,7 +85,7 @@ impl ProblemExecutor {
         let mut executor: Box<dyn CodeExecutorImpl> = get_executor(&submission.language);
 
         load_testcases(problem).await?;
-        executor.code(submission.code.to_string());
+        executor.code(String::from_utf8_lossy(&submission.code).to_string());
         executor.set_id(submission.id.as_u128());
 
         let compilation_output = executor.prepare_code_env().await?.output;

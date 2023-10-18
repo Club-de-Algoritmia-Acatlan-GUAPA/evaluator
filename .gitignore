@@ -4,6 +4,5 @@
 !playground/testlib.h
 .vscode/
 testlib.h
-checker.cpp
 flamegraph.svg
 .DS_Store
