@@ -58,7 +58,7 @@ pub fn test_problems() -> Vec<(ProblemID, Problem)> {
                         ..Default::default()
                     })
                     .collect::<Vec<_>>(),
-                checker: Some(get_checker_problem_0()),
+                checker: None,
                 validation_type: ValidatorType::LiteralChecker,
             },
         ),
