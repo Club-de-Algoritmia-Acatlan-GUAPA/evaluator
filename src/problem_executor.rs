@@ -1,27 +1,29 @@
-use anyhow::Result;
+use std::collections::HashMap;
+
+use anyhow::{anyhow, Result};
 use itertools::{Either, Itertools};
 use primitypes::{
     contest::{Language, Submission},
-    problem::{Problem, ProblemExecutorResult, TestCaseResult},
+    problem::{ProblemExecutorResult, TestCaseConfig, TestCaseInfo, TestCaseResult},
     status::{Status, STATUS_PRECEDENCE},
 };
 use rayon::prelude::*;
 use tracing::{info, instrument};
+use uuid::Uuid;
 
 use crate::{
     code_executor::{CodeExecutor, CodeExecutorError, CodeExecutorImpl},
-    testcase::load_testcases,
+    consts::PLAYGROUND,
+    store::ProblemStore,
     types::TestCaseError,
     utils::file_to_bytes,
     validator::Validator,
 };
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct ProblemExecutor;
-impl Default for ProblemExecutor {
-    fn default() -> Self {
-        ProblemExecutor::new()
-    }
+#[derive(Debug)]
+pub struct ProblemExecutor {
+    playground: String,
+    resources: String,
 }
 
 #[derive(Debug)]
@@ -72,129 +74,76 @@ impl From<TestCaseError> for ProblemExecutorError {
 }
 
 impl ProblemExecutor {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(playground: &str, resources: &str) -> Self {
+        Self {
+            playground: playground.to_string(),
+            resources: resources.to_string(),
+        }
     }
 
     #[instrument]
     pub async fn execute(
         &self,
         submission: &Submission,
-        problem: &Problem,
+        store: &dyn ProblemStore<Error = TestCaseError>,
     ) -> Result<ProblemExecutorResult, ProblemExecutorError> {
-        let mut executor: Box<dyn CodeExecutorImpl> = get_executor(&submission.language);
+        let problem = store.get_problem_by_id(&submission.problem_id).await?;
+        let mut executor: Box<dyn CodeExecutorImpl> = Self::get_executor(&submission.language);
 
-        load_testcases(problem).await?;
         executor.code(String::from_utf8_lossy(&submission.code).to_string());
         executor.set_id(submission.id.as_u128());
 
-        let compilation_output = executor.prepare_code_env().await?.output;
-
-        let mut validator = Validator::new(
-            &problem.validation_type,
-            &problem.problem_id,
+        let validator = Validator::new(
+            &problem.validation,
+            &problem.id,
             &submission.id,
+            self.resources.as_str(),
+            self.playground.as_str(),
         );
 
-        validator.prepare_validator().await?;
+        let compilation_output = match executor.prepare_code_env().await {
+            Ok(result) => result.output,
+            Err(e) => {
+                let _ = executor.destroy().await;
+                return Err(e.into());
+            },
+        };
 
         let mut test_ok: Vec<TestCaseResult> = vec![];
         let mut test_err: Vec<TestCaseError> = vec![];
 
-        let _ = problem
-            .test_cases
-            .chunks(6)
-            .map(|s| {
+        let test_cases_config = store.get_test_case_config(&problem.id).await.map_err(|_| {
+            ProblemExecutorError::ExternalError(anyhow!("Unable to get problem config file"))
+        })?;
+
+        let chunks = test_cases_config.test_cases.chunks(6);
+
+        let _: Result<Vec<_>, _> = chunks
+            .map(|test_case_chunk| {
                 let (ok, err): (
                     Vec<Result<TestCaseResult, _>>,
                     Vec<Result<_, TestCaseError>>,
-                ) = s
+                ) = test_case_chunk
                     .par_iter()
                     .map(|test_case| {
-                        let output_file;
-                        let input_file;
-                        #[cfg(target_os = "linux")]
-                        {
-                            output_file = format!(
-                                "/app/evaluator/playground/{0}/user_output_{1}.out",
-                                submission.id.as_u128(),
-                                test_case.id
-                            );
-                            input_file = format!(
-                                "/resources/{}/input_{}.in",
-                                problem.problem_id.as_u32(),
-                                test_case.id.to_string().as_str()
-                            );
-                            info!(
-                                "EXECUTING input_file =  {}, output_file = {} ",
-                                input_file, output_file
-                            );
-                            _ = executor.execute_nsjail(&input_file, &output_file).map_err(
-                                |op| match op {
-                                    CodeExecutorError::InternalError(e) => {
-                                        TestCaseError::InternalError(TestCaseResult {
-                                            status: e.status,
-                                            id: test_case.id,
-                                            output: e.output,
-                                        })
-                                    },
-                                    CodeExecutorError::ExternalError(e) => {
-                                        TestCaseError::ExternalError(e)
-                                    },
-                                },
-                            )?;
-                        }
-                        #[cfg(not(target_os = "linux"))]
-                        {
-                            output_file = format!(
-                                "./playground/{0}/user_output_{1}.out",
-                                submission.id.as_u128(),
-                                test_case.id
-                            );
-                            input_file = format!(
-                                "./resources/{}/input_{}.in",
-                                problem.problem_id.as_u32(),
-                                test_case.id.to_string().as_str()
-                            );
-                            info!(
-                                "EXECUTING input_file =  {}, output_file = {} ",
-                                input_file, output_file
-                            );
-                            _ = executor.execute(&input_file, &output_file).map_err(
-                                |op| match op {
-                                    CodeExecutorError::InternalError(e) => {
-                                        TestCaseError::InternalError(TestCaseResult {
-                                            status: e.status,
-                                            id: test_case.id,
-                                            output: e.output,
-                                        })
-                                    },
-                                    CodeExecutorError::ExternalError(e) => {
-                                        TestCaseError::ExternalError(e)
-                                    },
-                                },
-                            )?;
-                        }
-                        info!("VALIDATING test case {}", test_case.id);
-                        match validator.check_input(test_case) {
-                            Ok(mut e) => {
-                                if let Some(output) = e.output.as_mut() {
-                                    let user_output =
-                                        file_to_bytes(output_file).unwrap_or_default();
-                                    output.stdout = user_output;
-                                }
-                                Ok(e)
-                            },
-                            Err(TestCaseError::InternalError(mut e)) => {
-                                if let Some(output) = e.output.as_mut() {
-                                    let user_output =
-                                        file_to_bytes(output_file).unwrap_or_default();
-                                    output.stdout = user_output;
-                                }
-                                Err(TestCaseError::InternalError(e))
-                            },
-                            s @ Err(TestCaseError::ExternalError(_)) => s,
-                        }
+                        store.load_testcase(test_case)?;
+
+                        let test_case_info = store.get_full_path_test_case(test_case);
+                        let user_output_file = format!(
+                            "{}/{}/{}.out",
+                            self.playground,
+                            submission.id.as_u128(),
+                            test_case_info.id
+                        );
+                        let input_file = test_case_info.stdin_path.as_str();
+
+                        self.execute_code(
+                            executor.as_ref(),
+                            input_file,
+                            &user_output_file,
+                            test_case.id,
+                        )?;
+                        self.validate(&validator, 1, &test_case_info, &user_output_file)
                     })
                     .partition(Result::is_ok);
 
@@ -218,7 +167,7 @@ impl ProblemExecutor {
             })
             .collect::<Result<Vec<_>, _>>();
 
-        test_ok.sort_by_key(|b| b.id);
+        let test_ok = self.sort_test_cases_by_config_file(test_ok, &test_cases_config);
 
         if !test_err.is_empty() {
             let first_err = test_err.remove(0);
@@ -244,27 +193,147 @@ impl ProblemExecutor {
             prepare_output: compilation_output,
         })
     }
-}
 
-// "optimization" maybe I'm not sure, try to not use Box
-fn get_executor(language: &Language) -> Box<dyn CodeExecutorImpl> {
-    match language {
-        Language::Python3 => {
-            use crate::languages::python_3;
-            Box::new(CodeExecutor::<python_3::Python3>::new())
-        },
-        Language::Cpp11 => {
-            use crate::languages::cpp;
-            Box::new(CodeExecutor::<cpp::Cpp11>::new())
-        },
-        Language::Cpp17 => {
-            use crate::languages::cpp;
-            Box::new(CodeExecutor::<cpp::Cpp17>::new())
-        },
-        Language::Java => {
-            use crate::languages::java;
-            Box::new(CodeExecutor::<java::Java>::new())
-        },
-        _ => todo!(),
+    #[inline]
+    fn execute_code(
+        &self,
+        executor: &dyn CodeExecutorImpl,
+        input_file: &str,
+        output_file: &str,
+        test_case_id: Uuid,
+    ) -> Result<(), TestCaseError> {
+        info!(
+            "EXECUTING input_file =  {}, output_file = {} ",
+            input_file, output_file
+        );
+        match executor.execute(input_file, output_file) {
+            Ok(_) => Ok(()),
+            Err(op) => match op {
+                CodeExecutorError::InternalError(e) => {
+                    Err(TestCaseError::InternalError(TestCaseResult {
+                        status: e.status,
+                        id: test_case_id,
+                        output: e.output,
+                    }))
+                },
+                CodeExecutorError::ExternalError(e) => Err(TestCaseError::ExternalError(e)),
+            },
+        }
+    }
+
+    fn sort_test_cases_by_config_file(
+        &self,
+        tests: Vec<TestCaseResult>,
+        config: &TestCaseConfig,
+    ) -> Vec<TestCaseResult> {
+        let mut map = HashMap::new();
+        for test in tests {
+            map.insert(test.id, test);
+        }
+        let mut res = vec![];
+        for test in config.test_cases.iter() {
+            if map.contains_key(&test.id) {
+                let test = map.remove(&test.id).unwrap();
+                res.push(test);
+            }
+        }
+        res
+    }
+
+    fn validate(
+        &self,
+        validator: &Validator,
+        test_case_id: u32,
+        test_case: &TestCaseInfo,
+        output_file: &str,
+    ) -> Result<TestCaseResult, TestCaseError> {
+        info!("VALIDATING test case {}", test_case_id);
+        match validator.check_input(test_case) {
+            Ok(mut e) => {
+                if let Some(output) = e.output.as_mut() {
+                    let user_output = file_to_bytes(output_file).unwrap_or_default();
+                    output.stdout = user_output;
+                }
+                Ok(e)
+            },
+            Err(TestCaseError::InternalError(mut e)) => {
+                if let Some(output) = e.output.as_mut() {
+                    let user_output = file_to_bytes(output_file).unwrap_or_default();
+                    output.stdout = user_output;
+                }
+                Err(TestCaseError::InternalError(e))
+            },
+            s @ Err(TestCaseError::ExternalError(_)) => s,
+        }
+    }
+
+    //fn get_user_output_file_name(
+    //    &self,
+    //    store: &impl ProblemStore,
+    //    test_case_id: &Uuid,
+    //    submission_id: &SubmissionID,
+    //) -> String {
+    //    let output_file;
+    //    let input_file;
+    //    #[cfg(not(target_os = "linux"))]
+    //    {
+    //        output_file = format!(
+    //            ".{}/{}/user_output_{}.out",
+    //            self.playground,
+    //            submission_id.as_u128(),
+    //            test_case_id
+    //        );
+    //        input_file = format!(
+    //            "./resources/{0}/input_{1}.in",
+    //            problem_id.as_u32(),
+    //            test_case_id.to_string().as_str()
+    //        );
+    //        info!(
+    //            "EXECUTING input_file =  {}, output_file = {} ",
+    //            input_file, output_file
+    //        );
+    //    }
+    //    #[cfg(target_os = "linux")]
+    //    {
+    //        output_file = format!(
+    //            "/app/evaluator/playground/{0}/user_output_{1}.out",
+    //            submission.id.as_u128(),
+    //            test_case.id
+    //        );
+    //        input_file = format!(
+    //            "/resources/{}/input_{}.in",
+    //            problem.problem_id.as_u32(),
+    //            test_case.id.to_string().as_str()
+    //        );
+    //        info!(
+    //            "EXECUTING input_file =  {}, output_file = {} ",
+    //            input_file, output_file
+    //        );
+    //    }
+    //    (output_file, input_file)
+    //}
+
+    // "optimization" maybe I'm not sure, try to not use Box
+    //fn get_executor(language: &Language) -> Box<dyn CodeExecutorImpl> {
+    fn get_executor(language: &Language) -> Box<dyn CodeExecutorImpl> {
+        match language {
+            Language::Python3 => {
+                use crate::languages::python_3;
+                Box::new(CodeExecutor::<python_3::Python3>::new(*PLAYGROUND))
+            },
+            Language::Cpp11 => {
+                use crate::languages::cpp;
+                Box::new(CodeExecutor::<cpp::Cpp11>::new(*PLAYGROUND))
+            },
+            Language::Cpp17 => {
+                use crate::languages::cpp;
+                Box::new(CodeExecutor::<cpp::Cpp17>::new(*PLAYGROUND))
+            },
+            Language::Java => {
+                use crate::languages::java;
+                Box::new(CodeExecutor::<java::Java>::new(*PLAYGROUND))
+            },
+            _ => todo!(),
+        }
     }
 }

@@ -2,6 +2,7 @@ use std::process::{Command, Stdio};
 
 use anyhow::Result;
 use primitypes::{contest::Language, status::Status};
+use tracing::info;
 
 use crate::{
     code_executor::{CodeExecutor, CodeExecutorError, CodeExecutorResult, LanguageExecutor},
@@ -16,7 +17,7 @@ where
     Self: Send + Sync,
 {
     fn prepare(&self) -> Result<CodeExecutorResult, CodeExecutorError> {
-        let mut command = Command::new("/usr/bin/javac");
+        let mut command = Command::new(self.executable.path.as_str());
 
         // create executable
         let file_name = format!("Main.{}", Self::get_file_type());
@@ -30,7 +31,7 @@ where
             .output()?;
 
         let status_result = child.status.success();
-        println!("{:?}", child);
+        info!("{:?}", child);
         if status_result {
             Ok(CodeExecutorResult {
                 status: Some(child.status),
@@ -50,14 +51,16 @@ where
 
     fn execute_command(&self) -> std::process::Command {
         let mut c = Command::new("/usr/bin/java");
-        c.arg("Main");
+        c.arg("-cp")
+            .arg(&format!("{}/{}", self.playground, self.id))
+            .arg("Main");
         c
     }
 
     fn nsjail_execute_command(&self) -> JailedCommand {
         JailedCommand::new("/usr/bin/java".to_string())
             .arg("-cp")
-            .arg(&format!("/playground/{}", self.id))
+            .arg(&format!("{}/{}", self.playground, self.id))
             .arg("Main")
     }
 

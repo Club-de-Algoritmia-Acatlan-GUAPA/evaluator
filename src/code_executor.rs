@@ -6,10 +6,10 @@ use std::{
 use anyhow::Result;
 use async_trait::async_trait;
 use primitypes::{contest::Language, status::Status};
-use tokio::{fs, io::AsyncWriteExt};
+use tokio::fs;
 use tracing::{debug, info};
 
-use crate::command::JailedCommand;
+use crate::{command::JailedCommand, configuration::CmdStr, consts::LANGUAGE};
 
 #[derive(Debug, Clone, Default)]
 pub struct CodeExecutorResult {
@@ -59,8 +59,6 @@ pub trait CodeExecutorImpl: Send + Sync {
 
     fn set_id(&mut self, id: u128);
 
-    fn directory(&mut self, directory: &str);
-
     fn name(&mut self, name: String);
 
     async fn create_code_file(&self) -> Result<()>;
@@ -93,17 +91,24 @@ pub struct CodeExecutor<L: ?Sized> {
     pub file_type: String,
     pub directory: String,
     pub file_name: Option<String>,
+    pub executable: CmdStr,
     pub _marker: std::marker::PhantomData<L>,
+    pub playground: String,
+    pub resources: String,
 }
 
 impl<L: Default> CodeExecutor<L>
 where
     Self: LanguageExecutor,
 {
-    pub fn new() -> Self {
+    pub fn new(playground: &str) -> Self {
         CodeExecutor {
             file_type: Self::get_file_type(),
-            directory: "playground".to_string(),
+            playground: playground.to_string(),
+            executable: LANGUAGE
+                .get(&Self::language().to_string())
+                .expect("Language not available")
+                .clone(),
             ..Default::default()
         }
     }
@@ -126,10 +131,6 @@ where
         self.file_name = Some(name)
     }
 
-    fn directory(&mut self, directory: &str) {
-        self.directory = directory.to_string();
-    }
-
     async fn create_code_file(&self) -> Result<()> {
         let file_name = if let Some(file_name) = self.file_name.as_ref() {
             file_name.clone()
@@ -137,22 +138,32 @@ where
             self.id.to_string()
         };
         let file_name = match Self::language() {
-            Language::Java => format!("./playground/{}/Main.java", self.id),
-            _ => format!("./playground/{}/{}.{}", self.id, file_name, self.file_type),
+            Language::Java => format!("{}/{}/Main.java", self.playground, self.id),
+            _ => format!(
+                "{}/{}/{}.{}",
+                self.playground, self.id, file_name, self.file_type
+            ),
         };
         debug!("CREATING CODE FILE file = {}", file_name);
-        let mut file = fs::File::create(file_name).await?;
-        file.write_all(self.code.as_bytes()).await?;
-        Ok(())
+        match fs::write(&file_name, self.code.as_bytes()).await {
+            Ok(()) => return Ok(()),
+            Err(e) => {
+                debug!("File : {file_name} , error: {:?}", &e);
+                return Err(e.into());
+            },
+        }
     }
 
     async fn create_id_dir(&self) -> Result<()> {
-        let dir = format!("./playground/{}", &self.id);
+        let dir = format!("{}/{}", self.playground, &self.id);
         debug!("CREATING ID DIRECTORY file = {}", dir);
-        match tokio::fs::create_dir(dir).await {
+        match tokio::fs::create_dir(&dir).await {
             Err(e) => match e.kind() {
                 std::io::ErrorKind::AlreadyExists => Ok(()),
-                _ => return Err(e.into()),
+                _ => {
+                    debug!("File : {} , error: {:?}", &dir, &e);
+                    return Err(e.into());
+                },
             },
             Ok(_) => Ok(()),
         }
@@ -166,7 +177,7 @@ where
     }
 
     async fn destroy(&self) -> Result<()> {
-        let dir = format!("./playground/{}", self.id);
+        let dir = format!("{}/{}", self.playground, self.id);
         info!("DESTROYING {}", dir);
         Ok(tokio::fs::remove_dir_all(dir).await?)
     }
@@ -176,21 +187,41 @@ where
         input_file: &str,
         output_file: &str,
     ) -> Result<CodeExecutorResult, CodeExecutorError> {
-        let mut command = self.execute_command();
-        if !Self::is_compiled() {
-            command.arg(format!(
-                "./playground/{0}/{0}.{1}",
-                &self.id, &self.file_type
-            ));
-        }
-        debug!("OPENING file = {}", output_file);
-        let input = std::fs::File::open(input_file)?;
-        debug!("CREATING file = {}", output_file);
-        let output = std::fs::File::create(output_file)?;
+        #[cfg(not(target_os = "linux"))]
+        {
+            let mut command = self.execute_command();
+            if !Self::is_compiled() {
+                command.arg(format!(
+                    "{0}/{1}/{1}.{2}",
+                    self.playground, &self.id, &self.file_type
+                ));
+            }
+            debug!("OPENING file = {}", output_file);
+            let input = std::fs::File::open(input_file)?;
+            debug!("CREATING file = {}", output_file);
+            let output = std::fs::File::create(output_file)?;
 
-        command.stdin(input).stdout(output);
-        debug!("EXECUTING command {:?}", command);
-        crate::benchmark::run_and_meassure_2(&mut command)
+            command.stdin(input).stdout(output);
+            debug!("EXECUTING command {:?}", command);
+            crate::benchmark::run_and_meassure_2(&mut command)
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            debug!("CREATING file = {}", output_file);
+            let output = std::fs::File::create(output_file)?;
+            let command = self
+                .nsjail_execute_command()
+                .current_dir("/app/evaluator")
+                .mount("/app/evaluator/resources/", "/resources")
+                .mount("/app/evaluator/playground/", "/playground")
+                .config_file("/app/evaluator/resources/nsjail.cfg")
+                .arg("<")
+                .arg(input_file)
+                .stdout(output);
+            debug!("EXECUTING command {:?}", command);
+            crate::benchmark::run_and_meassure(command)
+        }
     }
 
     // TODO remove all hardcoded strings

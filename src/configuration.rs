@@ -1,5 +1,5 @@
 use anyhow::Result;
-use config::{Config, FileFormat};
+use config::{Config, FileFormat, Map};
 use dotenvy::dotenv;
 
 const CONFIGURATION_DIRECTORY: &str = "CONFIGURATION_DIRECTORY";
@@ -8,9 +8,13 @@ const CONFIGURATION_FILE: &str = "CONFIGURATION_FILE";
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
     pub is_prod: bool,
-    pub redis: RedisSettings,
+    pub notifications: RedisSettings,
+    pub cache: Option<RedisSettings>,
     pub rabbitmq: RabbitMqSettings,
     pub postgres: PostgresSettings,
+    pub upstream: UpStreamSettings,
+    pub evaluator: EvaluatorSettings,
+    pub language: LanguageBinary,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -34,6 +38,27 @@ pub struct PostgresSettings {
     pub database: String,
     pub port: usize,
     pub password: String,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct UpStreamSettings {
+    pub uri: String,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct EvaluatorSettings {
+    pub playground: String,
+    pub resources: String,
+    pub nsjail_config: String,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct LanguageBinary(pub Map<String, CmdStr>);
+
+#[derive(serde::Deserialize, Clone, Debug, Default)]
+pub struct CmdStr {
+    pub path: String,
+    pub args: Vec<String>,
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {

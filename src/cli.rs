@@ -10,3 +10,10 @@ pub fn get_tracing_mode() -> Level {
     }
     Level::INFO
 }
+
+pub fn init_tracing() {
+    let tracing_mode = get_tracing_mode();
+    tracing_subscriber::fmt()
+        .with_max_level(tracing_mode)
+        .init();
+}

@@ -1,7 +1,6 @@
-FROM debian:bookworm-slim as base
+FROM bitnami/minideb:latest as base
 
-RUN apt-get update
-RUN apt-get install -y\
+RUN install_packages \
     autoconf \
     bison \
     flex \
@@ -33,8 +32,8 @@ RUN rustup target add x86_64-unknown-linux-gnu
 RUN apt-get update -y
 RUN apt-get install -y openssl ca-certificates \
  pkg-config \
-gcc-x86-64-linux-gnu
-#gcc-multilib
+gcc-x86-64-linux-gnu \
+gcc-multilib
 WORKDIR /app
 
 
@@ -49,15 +48,14 @@ COPY --from=planner /app/evaluator/recipe.json /app/evaluator/recipe.json
 
 WORKDIR /app/evaluator
 COPY ./primitypes /app/primitypes
-RUN cargo chef cook --release --target x86_64-unknown-linux-gnu --recipe-path recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
 
 COPY ./evaluator /app/evaluator
 RUN cargo build --release --target x86_64-unknown-linux-gnu --bin evaluator
 
 
-FROM debian:bookworm-slim as end
-RUN apt-get update 
-RUN apt-get install -y\
+FROM bitnami/minideb:latest as end
+RUN install_packages \
     gcc \
     g++ \
     python3 \

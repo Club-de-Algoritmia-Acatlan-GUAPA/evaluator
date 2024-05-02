@@ -1,0 +1,87 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id,\n                created_at,\n                information,\n                submitted_by,\n                checker,\n                body,\n                memory_limit,\n                time_limit,\n                is_public,\n                validation\n            FROM problem\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "information",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "submitted_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "checker",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "body",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "memory_limit",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "time_limit",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "validation",
+        "type_info": {
+          "Custom": {
+            "name": "validation_type",
+            "kind": {
+              "Enum": [
+                "testlib_checker",
+                "literal_checker",
+                "interactive"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e3391e8b7bd6edc825e6054d2f20e268662fb1f8c93cfee449ca771eed69726e"
+}

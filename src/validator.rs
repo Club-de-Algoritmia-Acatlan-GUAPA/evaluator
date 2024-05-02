@@ -2,107 +2,110 @@ use std::process::{Command, Stdio};
 
 use anyhow::{anyhow, Result};
 use primitypes::{
-    problem::{Checker, ProblemID, SubmissionID, TestCase, TestCaseResult, ValidatorType},
+    problem::{ProblemID, SubmissionId, TestCaseInfo, TestCaseResult, ValidationType},
     status::{CmpExitCodes, Status, TestLibExitCodes},
 };
 use tokio::fs::metadata;
+use tracing::info;
 
-use crate::{code_executor::CodeExecutorError, types::TestCaseError};
+use crate::{code_executor::CodeExecutorError, consts::LANGUAGE, types::TestCaseError};
 #[derive(Clone)]
-pub struct Validator {
-    validation_type: ValidatorType,
-    checker: Option<Checker>,
+pub struct Validator<'a> {
+    validation_type: ValidationType,
     problem_id: ProblemID,
-    submission_id: SubmissionID,
+    submission_id: SubmissionId,
+    resources: &'a str,
+    playground: &'a str,
 }
 
-impl Validator {
+impl<'a> Validator<'a> {
     pub fn new(
-        validation_type: &ValidatorType,
+        validation_type: &ValidationType,
         problem_id: &ProblemID,
-        submission_id: &SubmissionID,
+        submission_id: &SubmissionId,
+        resources: &'a str,
+        playground: &'a str,
     ) -> Self {
         Validator {
             validation_type: validation_type.clone(),
-            checker: None,
             problem_id: problem_id.clone(),
             submission_id: submission_id.clone(),
+            resources,
+            playground,
         }
     }
 
-    pub fn set_checker(&mut self, checker: Option<&Checker>) {
-        self.checker = checker.cloned();
-    }
-
-    pub fn check_input(&self, test_case: &TestCase) -> Result<TestCaseResult, TestCaseError> {
+    pub fn check_input(&self, test_case: &TestCaseInfo) -> Result<TestCaseResult, TestCaseError> {
         match self.validation_type {
-            ValidatorType::TestLibChecker => self.testlib_check_input_2(test_case),
-            ValidatorType::LiteralChecker => self.literal_checker(test_case),
+            ValidationType::TestlibChecker => self.testlib_check_input_2(test_case),
+            ValidationType::LiteralChecker => self.literal_checker(test_case),
+            ValidationType::Interactive => todo!(),
         }
     }
 
     pub async fn prepare_validator(&mut self) -> Result<(), CodeExecutorError> {
-        println!("PREPARING");
-        if let ValidatorType::TestLibChecker = self.validation_type {
-            if let Ok(metadata) =
-                metadata(format!("./resources/{}/checker", self.problem_id.as_u32())).await
+        info!("PREPARING VALIDATOR");
+        if let ValidationType::TestlibChecker = self.validation_type {
+            if let Ok(metadata) = metadata(format!(
+                "{}/{}/checker",
+                self.resources,
+                self.problem_id.as_u32()
+            ))
+            .await
             {
                 if metadata.is_file() {
                     return Ok(());
                 }
             };
-            let dir = format!("./resources/{}", self.problem_id.as_u32());
+            let dir = format!("{}/{}", self.resources, self.problem_id.as_u32());
 
-            let o = Command::new("/usr/bin/g++")
+            let cpp = LANGUAGE.get("cpp").unwrap();
+            info!("COMPILING CHECKER {:?} with CPP {}", dir, cpp.path);
+            let o = Command::new(&cpp.path)
                 .current_dir(dir)
                 .args(vec!["checker.cpp", "-o", "checker"])
                 .stderr(Stdio::piped())
                 .stdout(Stdio::piped())
                 .output()?;
-            println!("CHECKER {:?}", o);
-            println!("PREPARED");
+            info!("CHECKER COMPILED {:?}", o);
+            info!("PREPARED");
         }
         Ok(())
     }
 
-    fn testlib_check_input_2(&self, test_case: &TestCase) -> Result<TestCaseResult, TestCaseError> {
-        println!("VALIDATING");
-        let judge_input_file_name = format!(
-            "./resources/{}/input_{}.in",
-            self.problem_id.as_u32(),
-            test_case.id
-        );
+    fn testlib_check_input_2(
+        &self,
+        test_case: &TestCaseInfo,
+    ) -> Result<TestCaseResult, TestCaseError> {
+        info!("VALIDATING");
 
-        let judge_output_file_name = format!(
-            "./resources/{}/output_{}.out",
-            self.problem_id.as_u32(),
-            test_case.id
-        );
+        let judge_input_file_name = &test_case.stdin_path;
+        let judge_output_file_name = test_case.stdout_path.clone().unwrap();
 
         let user_output_file_name = format!(
-            "./playground/{0}/user_output_{1}.out",
+            "{}/{}/{}.out",
+            self.playground,
             self.submission_id.as_u128(),
             test_case.id
         );
 
-        let checker = format!("./resources/{}/checker", self.problem_id.as_u32(),);
+        let checker = format!("{}/{}/checker", self.resources, self.problem_id.as_u32(),);
 
         let mut c = Command::new(checker);
-        //.current_dir(format!("./playground/{}", self.submission_id.as_u128()))
         c.args(vec![
             judge_input_file_name,
-            user_output_file_name,
-            judge_output_file_name,
+            &user_output_file_name,
+            judge_output_file_name.as_str(),
         ])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-        println!("{:?}", c);
+        info!("{:?}", c);
         let output = c.output()?;
 
-        println!("FINISHED VALIDATION");
-        println!("{output:?}");
-        println!("CODE {:?}", output.status.code());
+        info!("FINISHED VALIDATION");
+        info!("{output:?}");
+        info!("CODE {:?}", output.status.code());
         let status_code = output.status.code();
 
         let status = match status_code {
@@ -136,20 +139,17 @@ impl Validator {
         }
     }
 
-    fn literal_checker(&self, test_case: &TestCase) -> Result<TestCaseResult, TestCaseError> {
-        let mut c = Command::new("/usr/bin/cmp");
+    fn literal_checker(&self, test_case: &TestCaseInfo) -> Result<TestCaseResult, TestCaseError> {
+        let cmp = LANGUAGE.get("cmp").expect("/cmp path not set");
+        let mut c = Command::new(cmp.path.as_str());
 
         let user_output_file_name = format!(
-            "./playground/{0}/user_output_{1}.out",
+            "{}/{}/{}.out",
+            self.playground,
             self.submission_id.as_u128(),
             test_case.id
         );
-        let judge_output_file_name = format!(
-            "./resources/{}/output_{}.out",
-            self.problem_id.as_u32(),
-            test_case.id
-        );
-
+        let judge_output_file_name = test_case.stdout_path.clone().unwrap();
         let output = c
             .arg("--silent")
             .arg(user_output_file_name)

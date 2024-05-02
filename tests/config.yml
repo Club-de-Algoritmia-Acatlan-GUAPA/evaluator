@@ -1,0 +1,34 @@
+is_prod: false
+notifications:
+  host: 'localhost'
+  port: 9999
+  channel: 'channel_1'
+upstream:
+  uri: "http://localhost:3100"
+cache:
+  host: 'localhost'
+  port: 6379
+  channel: 'channel_1'
+rabbitmq:
+  host: 'localhost'
+  queue: 'submissions'
+  consumer: 'consumer_1'
+  port: 8778
+postgres:
+  host: '127.0.0.1'
+  user: 'postgres'
+  database: 'juezguapa'
+  port: 8787
+  password: 'password'
+evaluator:
+  playground: './tests/playground/'
+  resources: './tests/resources/'
+  nsjail_config: '/Users/yollotl/guapa/judge/juez_guapa/backend/evaluator/resources/nsjail.cfg'
+language:
+  cpp:
+    path: '/opt/homebrew/bin/g++-13'
+    args:  []
+  python3:
+    path: '/opt/homebrew/bin/python3'
+    args:  []
+
