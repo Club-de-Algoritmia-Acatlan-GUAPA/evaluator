@@ -19,7 +19,7 @@ postgres:
   user: 'postgres'
   database: 'juezguapa'
   port: 8787
-  password: 'password'
+  password: 'postgres'
 evaluator:
   playground: '/Users/yollotl/guapa/judge/juez_guapa/backend/evaluator/playground'
   resources: '/Users/yollotl/guapa/judge/juez_guapa/backend/evaluator/resources'
@@ -27,13 +27,26 @@ evaluator:
 language:
   cpp17:
     path: '/opt/homebrew/bin/g++-13'
-    args:  ['-std=c++1z']
+    args:  ['-std=c++1z', '$file', '-o', '$executable']
+    eval_type: 'compiled'
+    file_type: 'cpp'
   cpp11:
     path: '/opt/homebrew/bin/g++-13'
-    args:  ['-std=c++11']
+    args:  ['-std=c++11', '$file', '-o', '$executable']
+    eval_type: 'compiled'
+    file_type: 'cpp'
   python3:
     path: '/opt/homebrew/bin/python3'
-    args:  []
+    args:  ['$file']
+    eval_type: 'interpreted'
+    file_type: 'py'
   java:
     path: '/usr/bin/javac'
     args:  []
+    eval_type: 'java'
+    file_type: 'cpp'
+  cmp:
+    path: '/usr/bin/cmp'
+    args:  []
+    eval_type: 'interpreted'
+    file_type: ''

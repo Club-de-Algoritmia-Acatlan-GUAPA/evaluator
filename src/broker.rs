@@ -39,6 +39,9 @@ impl MessageBroker {
 
         let pool = Pool::builder()
             .connection_customizer(Box::new(Customizer))
+            .max_size(2)
+            .min_idle(1)
+            .retry_connection(true)
             .build(lapin_manager)
             .await
             .expect("build error");
@@ -154,7 +157,7 @@ impl CustomizeConnection<CustomLapinConnection, lapin::Error> for Customizer {
                 .await?,
         );
         info!(
-            "ACQUIRED conenction and consumer: {} on queue: {}",
+            "ACQUIRED connection and consumer: {} on queue: {}",
             conn.consumer_name, conn.queue_name
         );
         Ok(())

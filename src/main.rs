@@ -14,6 +14,7 @@ use primitypes::{
     status::{Status, StatusPG},
 };
 use serde_json::json;
+use sqlx::PgPool;
 use tracing::{debug, info};
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -23,29 +24,27 @@ async fn main() -> Result<()> {
 
     let redis_pool = RedisConnection::new(&CONFIGURATION.notifications, None).await;
     let notifier = redis_pool.get_notifier();
-    let pg_pool = get_postgres_pool().await;
+    let pg_pool: &'static PgPool = Box::leak(Box::new(get_postgres_pool().await));
 
+    let problem_store = FileSystemStore::from(pg_pool).await;
+    let executor = ProblemExecutor::new(*PLAYGROUND, *RESOURCES, Box::new(problem_store));
+    //    Ok(store) => store,
+    //    Err(_) => {
+    //        // deliver ack because problem ID doesn't exists
+    //        delivery
+    //            .ack(BasicAckOptions::default())
+    //            .await
+    //            .expect("basic_ack");
+    //        info!("ACK to rabbitmq");
+    //        continue;
+    //    },
+    //};
     loop {
         let delivery = broker.on_message().await;
         if let Ok(Some(Ok(delivery))) = delivery {
             match serde_json::from_reader::<_, Submission>(&*delivery.data) {
                 Ok(res) => {
-                    let executor = ProblemExecutor::new(*PLAYGROUND, *RESOURCES);
-                    let problem_store = match FileSystemStore::from(&pg_pool).await
-                    {
-                        Ok(store) => store,
-                        Err(_) => {
-                            // deliver ack because problem ID doesn't exists
-                            delivery
-                                .ack(BasicAckOptions::default())
-                                .await
-                                .expect("basic_ack");
-                            info!("ACK to rabbitmq");
-                            continue;
-                        },
-                    };
-                    let problem_store = &problem_store as &dyn ProblemStore<Error = TestCaseError>;
-                    match executor.execute(&res, problem_store).await {
+                    match executor.execute(&res).await {
                         Ok(ans) | Err(ProblemExecutorError::InternalError(ans)) => {
                             let mes = &ans.overall_result;
 
@@ -61,7 +60,7 @@ async fn main() -> Result<()> {
                                 json!(ans),
                                 match_status_to_pg_status(&mes) as _
                             )
-                            .execute(&pg_pool)
+                            .execute(pg_pool)
                             .await
                             .unwrap();
 

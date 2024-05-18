@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": " \n                                UPDATE submission\n                                SET output = $2 , status = $3\n                                WHERE submission_id = $1\n                                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bit",
+        "Jsonb",
+        {
+          "Custom": {
+            "name": "submission_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "accepted",
+                "wrong_answer",
+                "runtime_error",
+                "time_limit_exceeded",
+                "compilation_error",
+                "partial_points",
+                "unknown_error"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e4f18cbbd772c828e1c3a373be9da6a3c5a06c3eab247c0a9239834d403aeb74"
+}

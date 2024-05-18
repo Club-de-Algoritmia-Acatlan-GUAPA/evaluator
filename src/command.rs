@@ -31,6 +31,11 @@ impl JailedCommand {
         self
     }
 
+    pub fn args(mut self, args: &Vec<&str>) -> JailedCommand {
+        self.args.extend(args.iter().map(|s| s.to_string()));
+        self
+    }
+
     /// Mount a directory  into the jail filesystem
     pub fn mount(mut self, src: &str, dst: &str) -> JailedCommand {
         self.mounted_directories

@@ -1,0 +1,86 @@
+resources/
+├── 1
+│   ├── input_0.in
+│   ├── input_1.in
+│   ├── input_10.in
+│   ├── input_11.in
+│   ├── input_12.in
+│   ├── input_13.in
+│   ├── input_2.in
+│   ├── input_3.in
+│   ├── input_4.in
+│   ├── input_5.in
+│   ├── input_6.in
+│   ├── input_7.in
+│   ├── input_8.in
+│   ├── input_9.in
+│   ├── output_0.out
+│   ├── output_1.out
+│   ├── output_10.out
+│   ├── output_11.out
+│   ├── output_12.out
+│   ├── output_13.out
+│   ├── output_2.out
+│   ├── output_3.out
+│   ├── output_4.out
+│   ├── output_5.out
+│   ├── output_6.out
+│   ├── output_7.out
+│   ├── output_8.out
+│   └── output_9.out
+├── 2
+│   ├── a.out
+│   ├── checker
+│   ├── checker.cpp
+│   ├── input_0.in
+│   ├── input_1.in
+│   ├── input_10.in
+│   ├── input_11.in
+│   ├── input_12.in
+│   ├── input_13.in
+│   ├── input_14.in
+│   ├── input_15.in
+│   ├── input_16.in
+│   ├── input_17.in
+│   ├── input_18.in
+│   ├── input_19.in
+│   ├── input_2.in
+│   ├── input_20.in
+│   ├── input_21.in
+│   ├── input_22.in
+│   ├── input_23.in
+│   ├── input_3.in
+│   ├── input_4.in
+│   ├── input_5.in
+│   ├── input_6.in
+│   ├── input_7.in
+│   ├── input_8.in
+│   ├── input_9.in
+│   ├── output_0.out
+│   ├── output_1.out
+│   ├── output_10.out
+│   ├── output_11.out
+│   ├── output_12.out
+│   ├── output_13.out
+│   ├── output_14.out
+│   ├── output_15.out
+│   ├── output_16.out
+│   ├── output_17.out
+│   ├── output_18.out
+│   ├── output_19.out
+│   ├── output_2.out
+│   ├── output_20.out
+│   ├── output_21.out
+│   ├── output_22.out
+│   ├── output_23.out
+│   ├── output_3.out
+│   ├── output_4.out
+│   ├── output_5.out
+│   ├── output_6.out
+│   ├── output_7.out
+│   ├── output_8.out
+│   └── output_9.out
+├── nsjail.cfg
+└── testlib.h
+
+3 directories, 81 files

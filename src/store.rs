@@ -7,6 +7,7 @@ use primitypes::problem::{
 };
 use reqwest::Client;
 use sqlx::PgPool;
+use uuid::Uuid;
 
 use crate::{
     consts::{CONFIGURATION, RESOURCES},
@@ -22,24 +23,29 @@ pub struct FileSystemStore<'pg> {
 #[async_trait]
 pub trait ProblemStore: std::fmt::Debug + Send + Sync {
     type Error: Any;
-    fn load_testcase(&self, test_case: &TestCaseInfo) -> Result<(), Self::Error>;
+    fn load_testcase(
+        &self,
+        problem_id: &ProblemID,
+        test_case_id: &Uuid,
+    ) -> Result<TestCaseInfo, Self::Error>;
     async fn get_problem_by_id(&self, problem_id: &ProblemID) -> Result<Problem, Self::Error>;
     async fn get_test_case_config(&self, id: &ProblemID) -> Result<TestCaseConfig, Self::Error>;
-    fn get_full_path_test_case(&self, test_case: &TestCaseInfo) -> TestCaseInfo;
+    //fn get_full_path_test_case(&self, problem_id: &ProblemID, test_case_id:
+    // &Uuid) -> TestCaseInfo;
 }
 
 impl<'pg> FileSystemStore<'pg> {
-    pub async fn from(pg_pool: &'pg PgPool) -> Result<Self> {
+    pub async fn from(pg_pool: &'pg PgPool) -> Self {
         let client = reqwest::Client::new();
         //let problem = problems[problem_id.as_u32() as usize].1.clone();
         //
         let problem_cache: HashMap<ProblemID, Problem> = HashMap::new();
 
-        Ok(Self {
+        Self {
             client,
             pg_pool,
             problem_cache,
-        })
+        }
     }
 }
 
@@ -66,56 +72,44 @@ impl ProblemStore for FileSystemStore<'_> {
         }
     }
 
-    fn load_testcase(&self, test_case: &TestCaseInfo) -> Result<(), Self::Error> {
-        let stdin_path = &format!(
-            "{}/{}/{}",
+    fn load_testcase(
+        &self,
+        problem_id: &ProblemID,
+        test_case_id: &Uuid,
+    ) -> Result<TestCaseInfo, Self::Error> {
+        let stdin_path = format!(
+            "{}/{}/{}.in",
             *RESOURCES,
-            test_case.problem_id.as_u32(),
-            test_case.stdin_path
+            problem_id.as_u32(),
+            test_case_id.to_string()
         );
-        let _ = Path::new(stdin_path)
+
+        let stdout_path = format!(
+            "{}/{}/{}.out",
+            *RESOURCES,
+            problem_id.as_u32(),
+            test_case_id.to_string()
+        );
+        let _ = Path::new(&stdin_path)
             .is_file()
             .then_some(|| ())
             .ok_or_else(|| {
                 TestCaseError::ExternalError(anyhow!("File: {} not found", stdin_path))
             })?;
 
-        match &test_case.stdout_path {
-            Some(stdout_path) => {
-                let path_stdout = &format!(
-                    "{}/{}/{}",
-                    *RESOURCES,
-                    test_case.problem_id.as_u32(),
-                    stdout_path
-                );
-                let _ = Path::new(path_stdout)
-                    .is_file()
-                    .then_some(|| ())
-                    .ok_or_else(|| {
-                        TestCaseError::ExternalError(anyhow!("File: {} not found", stdin_path))
-                    })?;
-                Ok(())
-            },
-            None => Ok(()),
-        }
-    }
+        let _ = Path::new(&stdout_path)
+            .is_file()
+            .then_some(|| ())
+            .ok_or_else(|| {
+                TestCaseError::ExternalError(anyhow!("File: {} not found", stdin_path))
+            })?;
 
-    fn get_full_path_test_case(&self, test_case: &TestCaseInfo) -> TestCaseInfo {
-        let problem_id = &test_case.problem_id;
-        TestCaseInfo {
-            id: test_case.id,
+        Ok(TestCaseInfo {
+            id: test_case_id.clone(),
             problem_id: problem_id.clone(),
-            stdin_path: format!(
-                "{}/{}/{}",
-                *RESOURCES,
-                problem_id.as_u32(),
-                test_case.stdin_path
-            ),
-            stdout_path: test_case
-                .stdout_path
-                .as_ref()
-                .map(|c| format!("{}/{}/{}", *RESOURCES, problem_id.clone().as_u32(), c)),
-        }
+            stdin_path,
+            stdout_path: Some(stdout_path),
+        })
     }
 
     async fn get_problem_by_id(&self, problem_id: &ProblemID) -> Result<Problem, Self::Error> {

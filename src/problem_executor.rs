@@ -13,17 +13,20 @@ use uuid::Uuid;
 
 use crate::{
     code_executor::{CodeExecutor, CodeExecutorError, CodeExecutorImpl},
-    consts::PLAYGROUND,
+    consts::{LANGUAGE, PLAYGROUND},
+    languages::compiled,
     store::ProblemStore,
     types::TestCaseError,
     utils::file_to_bytes,
     validator::Validator,
+    configuration::EvaluationType,
 };
 
 #[derive(Debug)]
 pub struct ProblemExecutor {
     playground: String,
     resources: String,
+    problem_store: Box<dyn ProblemStore<Error = TestCaseError>>,
 }
 
 #[derive(Debug)]
@@ -72,12 +75,16 @@ impl From<TestCaseError> for ProblemExecutorError {
         }
     }
 }
-
 impl ProblemExecutor {
-    pub fn new(playground: &str, resources: &str) -> Self {
+    pub fn new(
+        playground: &str,
+        resources: &str,
+        store: Box<dyn ProblemStore<Error = TestCaseError>>,
+    ) -> Self {
         Self {
             playground: playground.to_string(),
             resources: resources.to_string(),
+            problem_store: store,
         }
     }
 
@@ -85,12 +92,14 @@ impl ProblemExecutor {
     pub async fn execute(
         &self,
         submission: &Submission,
-        store: &dyn ProblemStore<Error = TestCaseError>,
     ) -> Result<ProblemExecutorResult, ProblemExecutorError> {
-        let problem = store.get_problem_by_id(&submission.problem_id).await?;
+        let problem = self
+            .problem_store
+            .get_problem_by_id(&submission.problem_id)
+            .await?;
         let mut executor: Box<dyn CodeExecutorImpl> = Self::get_executor(&submission.language);
 
-        executor.code(String::from_utf8_lossy(&submission.code).to_string());
+        executor.set_code(String::from_utf8_lossy(&submission.code).to_string());
         executor.set_id(submission.id.as_u128());
 
         let validator = Validator::new(
@@ -112,9 +121,13 @@ impl ProblemExecutor {
         let mut test_ok: Vec<TestCaseResult> = vec![];
         let mut test_err: Vec<TestCaseError> = vec![];
 
-        let test_cases_config = store.get_test_case_config(&problem.id).await.map_err(|_| {
-            ProblemExecutorError::ExternalError(anyhow!("Unable to get problem config file"))
-        })?;
+        let test_cases_config = self
+            .problem_store
+            .get_test_case_config(&problem.id)
+            .await
+            .map_err(|_| {
+                ProblemExecutorError::ExternalError(anyhow!("Unable to get problem config file"))
+            })?;
 
         let chunks = test_cases_config.test_cases.chunks(6);
 
@@ -125,10 +138,11 @@ impl ProblemExecutor {
                     Vec<Result<_, TestCaseError>>,
                 ) = test_case_chunk
                     .par_iter()
-                    .map(|test_case| {
-                        store.load_testcase(test_case)?;
+                    .map(|test_case_id| {
+                        let test_case_info = self
+                            .problem_store
+                            .load_testcase(&problem.id, test_case_id)?;
 
-                        let test_case_info = store.get_full_path_test_case(test_case);
                         let user_output_file = format!(
                             "{}/{}/{}.out",
                             self.playground,
@@ -137,13 +151,13 @@ impl ProblemExecutor {
                         );
                         let input_file = test_case_info.stdin_path.as_str();
 
-                        self.execute_code(
+                        Self::execute_code(
                             executor.as_ref(),
                             input_file,
                             &user_output_file,
-                            test_case.id,
+                            *test_case_id,
                         )?;
-                        self.validate(&validator, 1, &test_case_info, &user_output_file)
+                        Self::validate(&validator, 1, &test_case_info, &user_output_file)
                     })
                     .partition(Result::is_ok);
 
@@ -167,7 +181,7 @@ impl ProblemExecutor {
             })
             .collect::<Result<Vec<_>, _>>();
 
-        let test_ok = self.sort_test_cases_by_config_file(test_ok, &test_cases_config);
+        let test_ok = Self::sort_test_cases_by_config_file(test_ok, &test_cases_config);
 
         if !test_err.is_empty() {
             let first_err = test_err.remove(0);
@@ -196,7 +210,6 @@ impl ProblemExecutor {
 
     #[inline]
     fn execute_code(
-        &self,
         executor: &dyn CodeExecutorImpl,
         input_file: &str,
         output_file: &str,
@@ -222,7 +235,6 @@ impl ProblemExecutor {
     }
 
     fn sort_test_cases_by_config_file(
-        &self,
         tests: Vec<TestCaseResult>,
         config: &TestCaseConfig,
     ) -> Vec<TestCaseResult> {
@@ -231,9 +243,9 @@ impl ProblemExecutor {
             map.insert(test.id, test);
         }
         let mut res = vec![];
-        for test in config.test_cases.iter() {
-            if map.contains_key(&test.id) {
-                let test = map.remove(&test.id).unwrap();
+        for test_id in config.test_cases.iter() {
+            if map.contains_key(test_id) {
+                let test = map.remove(test_id).unwrap();
                 res.push(test);
             }
         }
@@ -241,7 +253,6 @@ impl ProblemExecutor {
     }
 
     fn validate(
-        &self,
         validator: &Validator,
         test_case_id: u32,
         test_case: &TestCaseInfo,
@@ -267,72 +278,32 @@ impl ProblemExecutor {
         }
     }
 
-    //fn get_user_output_file_name(
-    //    &self,
-    //    store: &impl ProblemStore,
-    //    test_case_id: &Uuid,
-    //    submission_id: &SubmissionID,
-    //) -> String {
-    //    let output_file;
-    //    let input_file;
-    //    #[cfg(not(target_os = "linux"))]
-    //    {
-    //        output_file = format!(
-    //            ".{}/{}/user_output_{}.out",
-    //            self.playground,
-    //            submission_id.as_u128(),
-    //            test_case_id
-    //        );
-    //        input_file = format!(
-    //            "./resources/{0}/input_{1}.in",
-    //            problem_id.as_u32(),
-    //            test_case_id.to_string().as_str()
-    //        );
-    //        info!(
-    //            "EXECUTING input_file =  {}, output_file = {} ",
-    //            input_file, output_file
-    //        );
-    //    }
-    //    #[cfg(target_os = "linux")]
-    //    {
-    //        output_file = format!(
-    //            "/app/evaluator/playground/{0}/user_output_{1}.out",
-    //            submission.id.as_u128(),
-    //            test_case.id
-    //        );
-    //        input_file = format!(
-    //            "/resources/{}/input_{}.in",
-    //            problem.problem_id.as_u32(),
-    //            test_case.id.to_string().as_str()
-    //        );
-    //        info!(
-    //            "EXECUTING input_file =  {}, output_file = {} ",
-    //            input_file, output_file
-    //        );
-    //    }
-    //    (output_file, input_file)
-    //}
-
-    // "optimization" maybe I'm not sure, try to not use Box
-    //fn get_executor(language: &Language) -> Box<dyn CodeExecutorImpl> {
     fn get_executor(language: &Language) -> Box<dyn CodeExecutorImpl> {
-        match language {
-            Language::Python3 => {
-                use crate::languages::python_3;
-                Box::new(CodeExecutor::<python_3::Python3>::new(*PLAYGROUND))
+        match LANGUAGE.get(language) {
+            //Language::Python3 => {
+            //    use crate::languages::python_3;
+            //    Box::new(CodeExecutor::<python_3::Python3>::new(*PLAYGROUND))
+            //},
+            Some(cmd) => match cmd.eval_type {
+                EvaluationType::Compiled => Box::new(CodeExecutor::<compiled::Compiled>::new2(
+                    *PLAYGROUND,
+                    language,
+                )),
+                EvaluationType::Interpreted => {
+                    todo!()
+                },
+                EvaluationType::Java => {
+                    todo!()
+                },
             },
-            Language::Cpp11 => {
-                use crate::languages::cpp;
-                Box::new(CodeExecutor::<cpp::Cpp11>::new(*PLAYGROUND))
-            },
-            Language::Cpp17 => {
-                use crate::languages::cpp;
-                Box::new(CodeExecutor::<cpp::Cpp17>::new(*PLAYGROUND))
-            },
-            Language::Java => {
-                use crate::languages::java;
-                Box::new(CodeExecutor::<java::Java>::new(*PLAYGROUND))
-            },
+            //Language::Cpp17 => {
+            //    use crate::languages::cpp;
+            //    Box::new(CodeExecutor::<cpp::Cpp17>::new(*PLAYGROUND))
+            //},
+            //Language::Java => {
+            //    use crate::languages::java;
+            //    Box::new(CodeExecutor::<java::Java>::new(*PLAYGROUND))
+            //},
             _ => todo!(),
         }
     }

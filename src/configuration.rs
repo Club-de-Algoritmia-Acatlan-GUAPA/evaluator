@@ -1,6 +1,7 @@
 use anyhow::Result;
 use config::{Config, FileFormat, Map};
 use dotenvy::dotenv;
+use primitypes::contest::Language;
 
 const CONFIGURATION_DIRECTORY: &str = "CONFIGURATION_DIRECTORY";
 const CONFIGURATION_FILE: &str = "CONFIGURATION_FILE";
@@ -53,12 +54,23 @@ pub struct EvaluatorSettings {
 }
 
 #[derive(serde::Deserialize, Clone)]
-pub struct LanguageBinary(pub Map<String, CmdStr>);
+pub struct LanguageBinary(pub Map<Language, CmdStr>);
 
 #[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct CmdStr {
     pub path: String,
     pub args: Vec<String>,
+    pub eval_type: EvaluationType,
+    pub file_type: String,
+}
+
+#[derive(serde::Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum EvaluationType {
+    #[default]
+    Compiled,
+    Interpreted,
+    Java,
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {

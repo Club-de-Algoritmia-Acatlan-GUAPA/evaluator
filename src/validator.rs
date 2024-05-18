@@ -2,8 +2,7 @@ use std::process::{Command, Stdio};
 
 use anyhow::{anyhow, Result};
 use primitypes::{
-    problem::{ProblemID, SubmissionId, TestCaseInfo, TestCaseResult, ValidationType},
-    status::{CmpExitCodes, Status, TestLibExitCodes},
+    contest::Language, problem::{ProblemID, SubmissionId, TestCaseInfo, TestCaseResult, ValidationType}, status::{CmpExitCodes, Status, TestLibExitCodes}
 };
 use tokio::fs::metadata;
 use tracing::info;
@@ -59,7 +58,7 @@ impl<'a> Validator<'a> {
             };
             let dir = format!("{}/{}", self.resources, self.problem_id.as_u32());
 
-            let cpp = LANGUAGE.get("cpp").unwrap();
+            let cpp = LANGUAGE.get(&Language::Cpp17).unwrap();
             info!("COMPILING CHECKER {:?} with CPP {}", dir, cpp.path);
             let o = Command::new(&cpp.path)
                 .current_dir(dir)
@@ -140,7 +139,7 @@ impl<'a> Validator<'a> {
     }
 
     fn literal_checker(&self, test_case: &TestCaseInfo) -> Result<TestCaseResult, TestCaseError> {
-        let cmp = LANGUAGE.get("cmp").expect("/cmp path not set");
+        let cmp = LANGUAGE.get(&Language::Cmp).expect("/cmp path not set");
         let mut c = Command::new(cmp.path.as_str());
 
         let user_output_file_name = format!(
