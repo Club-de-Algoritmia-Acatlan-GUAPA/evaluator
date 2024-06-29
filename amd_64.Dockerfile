@@ -72,15 +72,12 @@ COPY --from=maker /lib64/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
 COPY --from=maker /lib/x86_64-linux-gnu/libgcc_s.so.1 /lib/x86_64-linux-gnu/libgcc_s.so.1 
 COPY --from=maker /lib/x86_64-linux-gnu/libm.so.6 /lib/x86_64-linux-gnu/libm.so.6 
 
-ENV IS_PROD=true
-ENV CONFIGURATION_DIRECTORY="/app/evaluator/configuration"
-ENV CONFIGURATION_FILE="prod.yml"
+#ENV IS_PROD=true
+#ENV CONFIGURATION_DIRECTORY="/app/evaluator/configuration"
+#ENV CONFIGURATION_FILE="prod.yml"
 
 COPY --from=builder /app/evaluator/target/x86_64-unknown-linux-gnu/release/evaluator /app/evaluator/evaluator
 COPY --from=maker /bin/nsjail /bin/nsjail
-
-COPY ./evaluator/playground /app/evaluator/playground
-COPY ./evaluator/resources /app/evaluator/resources
 
 WORKDIR /app/evaluator
 ENTRYPOINT ["/app/evaluator/evaluator"]
