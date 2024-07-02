@@ -1,13 +1,12 @@
 use std::{any::Any, collections::HashMap, path::Path};
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use primitypes::problem::{
     Checker, Problem, ProblemID, TestCaseConfig, TestCaseInfo, ValidationType,
 };
 use reqwest::Client;
 use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::{
     consts::{CONFIGURATION, RESOURCES},
@@ -26,7 +25,7 @@ pub trait ProblemStore: std::fmt::Debug + Send + Sync {
     fn load_testcase(
         &self,
         problem_id: &ProblemID,
-        test_case_id: &Uuid,
+        test_case_id: &String,
     ) -> Result<TestCaseInfo, Self::Error>;
     async fn get_problem_by_id(&self, problem_id: &ProblemID) -> Result<Problem, Self::Error>;
     async fn get_test_case_config(&self, id: &ProblemID) -> Result<TestCaseConfig, Self::Error>;
@@ -75,20 +74,20 @@ impl ProblemStore for FileSystemStore<'_> {
     fn load_testcase(
         &self,
         problem_id: &ProblemID,
-        test_case_id: &Uuid,
+        test_case_id: &String,
     ) -> Result<TestCaseInfo, Self::Error> {
         let stdin_path = format!(
             "{}/{}/{}.in",
             *RESOURCES,
             problem_id.as_u32(),
-            test_case_id.to_string()
+            test_case_id
         );
 
         let stdout_path = format!(
             "{}/{}/{}.out",
             *RESOURCES,
             problem_id.as_u32(),
-            test_case_id.to_string()
+            test_case_id
         );
         let _ = Path::new(&stdin_path)
             .is_file()

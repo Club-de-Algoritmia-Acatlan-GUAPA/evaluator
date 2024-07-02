@@ -122,13 +122,13 @@ impl<'a> Validator<'a> {
             s @ Status::WrongAnswer | s @ Status::TimeLimitExceeded | s @ Status::PartialPoints => {
                 Err(TestCaseError::InternalError(TestCaseResult {
                     status: s,
-                    id: test_case.id,
+                    id: test_case.id.clone(),
                     output: Some(output),
                 }))
             },
             s @ Status::Accepted => Ok(TestCaseResult {
                 status: s,
-                id: test_case.id,
+                id: test_case.id.clone(),
                 output: Some(output),
             }),
             Status::UnknownError(e) => Err(TestCaseError::ExternalError(anyhow!(e))),
@@ -172,12 +172,12 @@ impl<'a> Validator<'a> {
         match status {
             s @ Status::WrongAnswer => Err(TestCaseError::InternalError(TestCaseResult {
                 status: s,
-                id: test_case.id,
+                id: test_case.id.clone(),
                 output: Some(output),
             })),
             s @ Status::Accepted => Ok(TestCaseResult {
                 status: s,
-                id: test_case.id,
+                id: test_case.id.clone(),
                 output: Some(output),
             }),
             Status::UnknownError(e) => Err(TestCaseError::ExternalError(anyhow!(e))),

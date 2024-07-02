@@ -1,7 +1,5 @@
 use std::process::Command;
 
-use primitypes::contest::Language;
-
 use crate::{
     code_executor::{CodeExecutor, Execution, LanguageExecutor2},
     command::JailedCommand,

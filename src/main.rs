@@ -5,8 +5,7 @@ use evaluator::{
     postgres::get_postgres_pool,
     problem_executor::{ProblemExecutor, ProblemExecutorError},
     redis::RedisConnection,
-    store::{FileSystemStore, ProblemStore},
-    types::TestCaseError,
+    store::FileSystemStore,
 };
 use lapin::{options::*, Result};
 use primitypes::{

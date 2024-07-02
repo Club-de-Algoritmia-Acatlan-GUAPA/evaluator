@@ -84,7 +84,7 @@ pub trait CodeExecutorImpl: Send + Sync {
         output_file: &str,
     ) -> Result<CodeExecutorResult, CodeExecutorError>;
 
-    fn parse_args(&self, data: &Vec<&str>) -> Vec<String>;
+    fn parse_args(&self, data: &[&str]) -> Vec<String>;
 }
 
 #[derive(Default, Debug, Clone)]
@@ -384,7 +384,7 @@ where
         }
     }
 
-    fn parse_args(&self, data: &Vec<&str>) -> Vec<String> {
+    fn parse_args(&self, data: &[&str]) -> Vec<String> {
         data.iter()
             .map(|s| {
                 s.replace("$file", self.user_code_file.as_str())

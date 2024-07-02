@@ -43,6 +43,7 @@ pub async fn create_file(path: &str) -> Result<File> {
     Ok(OpenOptions::new()
         .write(true)
         .create(true)
+        .truncate(true)
         .open(path)
         .await?)
 }

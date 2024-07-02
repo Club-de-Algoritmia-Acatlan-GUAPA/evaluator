@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use itertools::{Either, Itertools};
 use primitypes::{
     contest::{Language, Submission},
@@ -9,7 +9,6 @@ use primitypes::{
 };
 use rayon::prelude::*;
 use tracing::{info, instrument};
-use uuid::Uuid;
 
 use crate::{
     code_executor::{CodeExecutor, CodeExecutorError, CodeExecutorImpl},
@@ -121,16 +120,20 @@ impl ProblemExecutor {
         let mut test_ok: Vec<TestCaseResult> = vec![];
         let mut test_err: Vec<TestCaseError> = vec![];
 
-        let test_cases_config = self
-            .problem_store
-            .get_test_case_config(&problem.id)
-            .await
-            .map_err(|_| {
-                ProblemExecutorError::ExternalError(anyhow!("Unable to get problem config file"))
-            })?;
+        //let test_cases_config = self
+        //    .problem_store
+        //    .get_test_case_config(&problem.id)
+        //    .await
+        //    .map_err(|_| {
+        //        ProblemExecutorError::ExternalError(anyhow!("Unable to get problem
+        // config file"))    })?;
 
-        let chunks = test_cases_config.test_cases.chunks(6);
+        let chunks = problem.test_cases.chunks(6);
 
+        let test_cases_config = TestCaseConfig {
+            test_cases: problem.test_cases.clone(),
+            problem_id: problem.id.clone(),
+        };
         let _: Result<Vec<_>, _> = chunks
             .map(|test_case_chunk| {
                 let (ok, err): (
@@ -155,7 +158,7 @@ impl ProblemExecutor {
                             executor.as_ref(),
                             input_file,
                             &user_output_file,
-                            *test_case_id,
+                            test_case_info.id.clone(),
                         )?;
                         Self::validate(&validator, 1, &test_case_info, &user_output_file)
                     })
@@ -213,7 +216,7 @@ impl ProblemExecutor {
         executor: &dyn CodeExecutorImpl,
         input_file: &str,
         output_file: &str,
-        test_case_id: Uuid,
+        test_case_id: String,
     ) -> Result<(), TestCaseError> {
         info!(
             "EXECUTING input_file =  {}, output_file = {} ",
@@ -240,12 +243,12 @@ impl ProblemExecutor {
     ) -> Vec<TestCaseResult> {
         let mut map = HashMap::new();
         for test in tests {
-            map.insert(test.id, test);
+            map.insert(test.id.clone(), test);
         }
         let mut res = vec![];
         for test_id in config.test_cases.iter() {
-            if map.contains_key(test_id) {
-                let test = map.remove(test_id).unwrap();
+            if map.contains_key(test_id.as_str()) {
+                let test = map.remove(test_id.as_str()).unwrap();
                 res.push(test);
             }
         }
