@@ -372,10 +372,10 @@ where
             let output = std::fs::File::create(output_file)?;
             let command = self
                 .nsjail_execute_command()
-                .current_dir("/app/evaluator")
-                .mount("/app/evaluator/resources/", "/resources")
-                .mount("/app/evaluator/playground/", "/playground")
-                .config_file("/app/evaluator/resources/nsjail.cfg")
+                .current_dir("/")
+                .mount("/resources", "/resources")
+                .mount("/playground", "/playground")
+                .config_file("/app/evaluator/configuration/nsjail.cfg")
                 .arg("<")
                 .arg(input_file)
                 .stdout(output);

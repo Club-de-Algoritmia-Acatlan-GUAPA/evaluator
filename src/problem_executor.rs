@@ -13,13 +13,13 @@ use uuid::Uuid;
 
 use crate::{
     code_executor::{CodeExecutor, CodeExecutorError, CodeExecutorImpl},
+    configuration::EvaluationType,
     consts::{LANGUAGE, PLAYGROUND},
-    languages::compiled,
+    languages::{compiled, interpreted},
     store::ProblemStore,
     types::TestCaseError,
     utils::file_to_bytes,
     validator::Validator,
-    configuration::EvaluationType,
 };
 
 #[derive(Debug)]
@@ -289,9 +289,9 @@ impl ProblemExecutor {
                     *PLAYGROUND,
                     language,
                 )),
-                EvaluationType::Interpreted => {
-                    todo!()
-                },
+                EvaluationType::Interpreted => Box::new(
+                    CodeExecutor::<interpreted::Interpreted>::new2(*PLAYGROUND, language),
+                ),
                 EvaluationType::Java => {
                     todo!()
                 },

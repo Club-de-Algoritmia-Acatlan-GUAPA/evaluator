@@ -62,7 +62,7 @@
       {
         "ordinal": 9,
         "name": "testcases",
-        "type_info": "UuidArray"
+        "type_info": "TextArray"
       }
     ],
     "parameters": {
