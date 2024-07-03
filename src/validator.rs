@@ -66,6 +66,11 @@ impl<'a> Validator<'a> {
                 .stderr(Stdio::piped())
                 .stdout(Stdio::piped())
                 .output()?;
+            if !o.status.success() {
+                return Err(CodeExecutorError::ExternalError(
+                    anyhow!(String::from_utf8_lossy(&o.stderr).to_string()),
+                ));
+            }
             info!("CHECKER COMPILED {:?}", o);
             info!("PREPARED");
         }

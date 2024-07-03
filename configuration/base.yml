@@ -26,12 +26,12 @@ evaluator:
   nsjail_config: '/Users/yollotl/guapa/judge/juez_guapa/backend/evaluator/resources/nsjail.cfg'
 language:
   cpp17:
-    path: '/opt/homebrew/bin/g++-13'
+    path: '/usr/bin/gcc'
     args:  ['-std=c++1z', '$file', '-o', '$executable']
     eval_type: 'compiled'
     file_type: 'cpp'
   cpp11:
-    path: '/opt/homebrew/bin/g++-13'
+    path: '/usr/bin/gcc'
     args:  ['-std=c++11', '$file', '-o', '$executable']
     eval_type: 'compiled'
     file_type: 'cpp'

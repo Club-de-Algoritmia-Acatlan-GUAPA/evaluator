@@ -101,7 +101,7 @@ impl ProblemExecutor {
         executor.set_code(String::from_utf8_lossy(&submission.code).to_string());
         executor.set_id(submission.id.as_u128());
 
-        let validator = Validator::new(
+        let mut validator = Validator::new(
             &problem.validation,
             &problem.id,
             &submission.id,
@@ -134,6 +134,7 @@ impl ProblemExecutor {
             test_cases: problem.test_cases.clone(),
             problem_id: problem.id.clone(),
         };
+        validator.prepare_validator().await?;
         let _: Result<Vec<_>, _> = chunks
             .map(|test_case_chunk| {
                 let (ok, err): (
@@ -160,7 +161,7 @@ impl ProblemExecutor {
                             &user_output_file,
                             test_case_info.id.clone(),
                         )?;
-                        Self::validate(&validator, 1, &test_case_info, &user_output_file)
+                        Self::validate(&validator, &test_case_info, &user_output_file)
                     })
                     .partition(Result::is_ok);
 
@@ -257,11 +258,10 @@ impl ProblemExecutor {
 
     fn validate(
         validator: &Validator,
-        test_case_id: u32,
         test_case: &TestCaseInfo,
         output_file: &str,
     ) -> Result<TestCaseResult, TestCaseError> {
-        info!("VALIDATING test case {}", test_case_id);
+        info!("VALIDATING test case {}", test_case.id);
         match validator.check_input(test_case) {
             Ok(mut e) => {
                 if let Some(output) = e.output.as_mut() {

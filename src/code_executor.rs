@@ -330,7 +330,7 @@ where
 
         self.directory = format!("{}/{}", self.playground, self.id);
 
-        self.exec_code_file = format!("/{}/{}/{}", self.playground, self.id, self.id);
+        self.exec_code_file = format!("{}/{}/{}", self.playground, self.id, self.id);
 
         self.create_id_dir().await?;
         self.create_code_file().await?;
@@ -385,13 +385,13 @@ where
     }
 
     fn parse_args(&self, data: &[&str]) -> Vec<String> {
-        data.iter()
+        dbg!(data.iter()
             .map(|s| {
                 s.replace("$file", self.user_code_file.as_str())
                     .replace("$executable", self.exec_code_file.as_str())
                     .to_string()
             })
-            .collect()
+            .collect())
     }
 
     // TODO remove all hardcoded strings

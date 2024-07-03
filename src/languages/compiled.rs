@@ -27,8 +27,8 @@ where
 
         // create executable
 
-        let child = command
-            .current_dir(format!("./{}/{}", self.directory, self.id))
+        let cmd = command
+            //.current_dir(format!("./{}/{}", self.directory, self.id))
             .args( args
                 //vec![
                 //&self.get_cpp_version(),
@@ -45,8 +45,9 @@ where
             )
             .stdout(Stdio::piped())
             .stdin(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output()?;
+            .stderr(Stdio::piped());
+        dbg!(&cmd);
+        let child = cmd.output()?;
 
         let status_result = child.status.success();
         println!("{:?}", child);
