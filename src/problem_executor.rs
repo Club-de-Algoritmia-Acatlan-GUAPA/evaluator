@@ -248,8 +248,8 @@ impl ProblemExecutor {
         }
         let mut res = vec![];
         for test_id in config.test_cases.iter() {
-            if map.contains_key(test_id.as_str()) {
-                let test = map.remove(test_id.as_str()).unwrap();
+            if map.contains_key(test_id) {
+                let test = map.remove(test_id).unwrap();
                 res.push(test);
             }
         }

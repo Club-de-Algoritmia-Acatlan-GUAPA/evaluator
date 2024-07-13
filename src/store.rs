@@ -3,9 +3,10 @@ use std::{any::Any, collections::HashMap, path::Path};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use primitypes::problem::{
-    Checker, Problem, ProblemID, TestCaseConfig, TestCaseInfo, ValidationType,
+    Checker, Problem, ProblemID, TestCaseConfig, TestCaseIdInfo, TestCaseInfo, ValidationType,
 };
 use reqwest::Client;
+use serde_json::json;
 use sqlx::PgPool;
 
 use crate::{
@@ -25,7 +26,7 @@ pub trait ProblemStore: std::fmt::Debug + Send + Sync {
     fn load_testcase(
         &self,
         problem_id: &ProblemID,
-        test_case_id: &String,
+        test_case_id_info: &str,
     ) -> Result<TestCaseInfo, Self::Error>;
     async fn get_problem_by_id(&self, problem_id: &ProblemID) -> Result<Problem, Self::Error>;
     async fn get_test_case_config(&self, id: &ProblemID) -> Result<TestCaseConfig, Self::Error>;
@@ -74,7 +75,7 @@ impl ProblemStore for FileSystemStore<'_> {
     fn load_testcase(
         &self,
         problem_id: &ProblemID,
-        test_case_id: &String,
+        test_case_id: &str,
     ) -> Result<TestCaseInfo, Self::Error> {
         let stdin_path = format!(
             "{}/{}/{}.in",
@@ -104,7 +105,7 @@ impl ProblemStore for FileSystemStore<'_> {
             })?;
 
         Ok(TestCaseInfo {
-            id: test_case_id.clone(),
+            id: test_case_id.to_string(),
             problem_id: problem_id.clone(),
             stdin_path,
             stdout_path: Some(stdout_path),
