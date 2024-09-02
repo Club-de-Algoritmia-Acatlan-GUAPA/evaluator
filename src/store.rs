@@ -3,7 +3,7 @@ use std::{any::Any, collections::HashMap, path::Path};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use primitypes::problem::{
-    Checker, Problem, ProblemID, TestCaseConfig, TestCaseIdInfo, TestCaseInfo, ValidationType,
+    Checker, Problem, ProblemId, TestCaseConfig, TestCaseIdInfo, TestCaseInfo, ValidationType,
 };
 use reqwest::Client;
 use serde_json::json;
@@ -18,19 +18,19 @@ use crate::{
 pub struct FileSystemStore<'pg> {
     client: Client,
     pg_pool: &'pg PgPool,
-    problem_cache: HashMap<ProblemID, Problem>,
+    problem_cache: HashMap<ProblemId, Problem>,
 }
 #[async_trait]
 pub trait ProblemStore: std::fmt::Debug + Send + Sync {
-    type Error: Any;
+    type Error;
     fn load_testcase(
         &self,
-        problem_id: &ProblemID,
+        problem_id: &ProblemId,
         test_case_id_info: &str,
     ) -> Result<TestCaseInfo, Self::Error>;
-    async fn get_problem_by_id(&self, problem_id: &ProblemID) -> Result<Problem, Self::Error>;
-    async fn get_test_case_config(&self, id: &ProblemID) -> Result<TestCaseConfig, Self::Error>;
-    //fn get_full_path_test_case(&self, problem_id: &ProblemID, test_case_id:
+    async fn get_problem_by_id(&self, problem_id: &ProblemId) -> Result<Problem, Self::Error>;
+    //async fn get_test_case_config(&self, id: &ProblemId) -> Result<TestCaseConfig, Self::Error>;
+    //fn get_full_path_test_case(&self, problem_id: &ProblemId, test_case_id:
     // &Uuid) -> TestCaseInfo;
 }
 
@@ -39,7 +39,7 @@ impl<'pg> FileSystemStore<'pg> {
         let client = reqwest::Client::new();
         //let problem = problems[problem_id.as_u32() as usize].1.clone();
         //
-        let problem_cache: HashMap<ProblemID, Problem> = HashMap::new();
+        let problem_cache: HashMap<ProblemId, Problem> = HashMap::new();
 
         Self {
             client,
@@ -53,28 +53,28 @@ impl<'pg> FileSystemStore<'pg> {
 impl ProblemStore for FileSystemStore<'_> {
     type Error = TestCaseError;
 
-    async fn get_test_case_config(&self, id: &ProblemID) -> Result<TestCaseConfig, Self::Error> {
-        let client = self.client.clone();
-        let url = format!("{}/{}", CONFIGURATION.upstream.uri, id.as_u32());
-        let res = client.get(url).send().await.map_err(|_| {
-            TestCaseError::ExternalError(anyhow!("Unable to fetch test case config"))
-        })?;
-        let bytes = res
-            .bytes()
-            .await
-            .map_err(|_| anyhow!("Unable to obtain bytes response"))?;
-
-        match bincode::deserialize(&bytes) {
-            Ok(Some(config)) => Ok(config),
-            _ => Err(TestCaseError::ExternalError(anyhow!(
-                "Unable to fetch test case config"
-            ))),
-        }
-    }
+    //async fn get_test_case_config(&self, id: &ProblemId) -> Result<TestCaseConfig, Self::Error> {
+    //    let client = self.client.clone();
+    //    let url = format!("{}/{}", CONFIGURATION.upstream.uri, id.as_u32());
+    //    let res = client.get(url).send().await.map_err(|_| {
+    //        TestCaseError::ExternalError(anyhow!("Unable to fetch test case config"))
+    //    })?;
+    //    let bytes = res
+    //        .bytes()
+    //        .await
+    //        .map_err(|_| anyhow!("Unable to obtain bytes response"))?;
+    //
+    //    match bincode::deserialize(&bytes) {
+    //        Ok(Some(config)) => Ok(config),
+    //        _ => Err(TestCaseError::ExternalError(anyhow!(
+    //            "Unable to fetch test case config"
+    //        ))),
+    //    }
+    //}
 
     fn load_testcase(
         &self,
-        problem_id: &ProblemID,
+        problem_id: &ProblemId,
         test_case_id: &str,
     ) -> Result<TestCaseInfo, Self::Error> {
         let stdin_path = format!(
@@ -112,7 +112,7 @@ impl ProblemStore for FileSystemStore<'_> {
         })
     }
 
-    async fn get_problem_by_id(&self, problem_id: &ProblemID) -> Result<Problem, Self::Error> {
+    async fn get_problem_by_id(&self, problem_id: &ProblemId) -> Result<Problem, Self::Error> {
         // TODO implement implentation of IntoRow
         sqlx::query!(
             r#"
@@ -139,7 +139,7 @@ impl ProblemStore for FileSystemStore<'_> {
                 .map_err(|e| TestCaseError::ExternalError(e.into()))?;
 
             Ok(Problem {
-                id: ProblemID(row.id as u32),
+                id: ProblemId(row.id as u32),
                 checker: row.checker.map(|s| Checker { checker: s }),
                 created_at: row.created_at,
                 submitted_by: row.submitted_by,
@@ -155,19 +155,19 @@ impl ProblemStore for FileSystemStore<'_> {
     }
 }
 
-fn test_problems() -> Vec<(ProblemID, Problem)> {
+fn test_problems() -> Vec<(ProblemId, Problem)> {
     let problem = Problem {
-        id: ProblemID(2),
+        id: ProblemId(2),
         checker: Some(get_checker_problem_0()),
         validation: ValidationType::TestlibChecker,
         ..Default::default()
     };
     vec![
-        (ProblemID(2), problem),
+        (ProblemId(2), problem),
         (
-            ProblemID(1),
+            ProblemId(1),
             Problem {
-                id: ProblemID(1),
+                id: ProblemId(1),
                 checker: None,
                 validation: ValidationType::LiteralChecker,
                 ..Default::default()

@@ -53,7 +53,7 @@ async fn main() -> Result<()> {
                                 " 
                                 UPDATE submission
                                 SET output = $2 , status = $3
-                                WHERE submission_id = $1
+                                WHERE id = $1
                                 ",
                                 res.id.as_bit_vec(),
                                 json!(ans),
@@ -83,12 +83,22 @@ async fn main() -> Result<()> {
                             }
                         },
                         Err(e) => {
+                            delivery
+                                .nack(BasicNackOptions::default())
+                                .await
+                                .expect("basic_nack");
+                            info!("NACK to rabbitmq");
                             println!("{e:?}");
                         },
                     }
                     println!("---------------------------------");
                 },
                 Err(e) => {
+                    delivery
+                        .nack(BasicNackOptions::default())
+                        .await
+                        .expect("basic_nack");
+                    info!("NACK to rabbitmq");
                     println!("{}", e);
                 },
             }

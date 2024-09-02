@@ -295,9 +295,10 @@ impl ProblemExecutor {
                 EvaluationType::Interpreted => Box::new(
                     CodeExecutor::<interpreted::Interpreted>::new2(*PLAYGROUND, language),
                 ),
-                EvaluationType::Java => {
-                    todo!()
-                },
+                EvaluationType::Java => Box::new(CodeExecutor::<compiled::Compiled>::new2(
+                    *PLAYGROUND,
+                    language,
+                )),
             },
             //Language::Cpp17 => {
             //    use crate::languages::cpp;

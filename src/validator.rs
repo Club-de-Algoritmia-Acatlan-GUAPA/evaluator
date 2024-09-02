@@ -2,7 +2,7 @@ use std::process::{Command, Stdio};
 
 use anyhow::{anyhow, Result};
 use primitypes::{
-    contest::Language, problem::{ProblemID, SubmissionId, TestCaseInfo, TestCaseResult, ValidationType}, status::{CmpExitCodes, Status, TestLibExitCodes}
+    contest::Language, problem::{ProblemId, SubmissionId, TestCaseInfo, TestCaseResult, ValidationType}, status::{CmpExitCodes, Status, TestLibExitCodes}
 };
 use tokio::fs::metadata;
 use tracing::info;
@@ -10,25 +10,25 @@ use tracing::info;
 use crate::{code_executor::CodeExecutorError, consts::LANGUAGE, types::TestCaseError};
 #[derive(Clone)]
 pub struct Validator<'a> {
-    validation_type: ValidationType,
-    problem_id: ProblemID,
-    submission_id: SubmissionId,
+    validation_type: &'a ValidationType,
+    problem_id: &'a ProblemId,
+    submission_id: &'a SubmissionId,
     resources: &'a str,
     playground: &'a str,
 }
 
 impl<'a> Validator<'a> {
     pub fn new(
-        validation_type: &ValidationType,
-        problem_id: &ProblemID,
-        submission_id: &SubmissionId,
+        validation_type: &'a ValidationType,
+        problem_id: &'a ProblemId,
+        submission_id: &'a SubmissionId,
         resources: &'a str,
         playground: &'a str,
     ) -> Self {
         Validator {
-            validation_type: validation_type.clone(),
-            problem_id: problem_id.clone(),
-            submission_id: submission_id.clone(),
+            validation_type,
+            problem_id,
+            submission_id,
             resources,
             playground,
         }

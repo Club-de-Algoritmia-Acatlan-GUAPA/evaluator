@@ -1,12 +1,12 @@
 use std::process::Command;
 
 use crate::{
-    code_executor::{CodeExecutor, CodeExecutorImpl, Execution, LanguageExecutor2},
+    code_executor::{CodeExecutor, CodeExecutorImpl,  LanguageExecutor2},
     command::JailedCommand,
 };
 #[derive(Default, Clone)]
 pub struct Interpreted;
-impl Execution for CodeExecutor<Interpreted> {}
+//impl Execution for CodeExecutor<Interpreted> {}
 impl LanguageExecutor2 for CodeExecutor<Interpreted> {
     fn nsjail_execute_command(&self) -> JailedCommand {
         let vec: Vec<_> = self.executable.args.iter().map(|s| s.as_str()).collect();

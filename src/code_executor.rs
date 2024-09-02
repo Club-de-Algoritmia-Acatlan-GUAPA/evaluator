@@ -33,7 +33,7 @@ pub enum CodeExecutorError {
     InternalError(CodeExecutorInternalError),
     ExternalError(anyhow::Error),
 }
-pub trait Execution {}
+//pub trait Execution {}
 
 impl<E> From<E> for CodeExecutorError
 where
@@ -264,7 +264,7 @@ pub trait LanguageExecutor2: Send + Sync {
 
 impl<L: Default> CodeExecutor<L>
 where
-    Self: LanguageExecutor2 + Execution,
+    Self: LanguageExecutor2, //+ Execution,
 {
     pub fn new2(playground: &str, language: &Language) -> Self {
         CodeExecutor {
@@ -280,7 +280,7 @@ where
 #[async_trait]
 impl<L: Default> CodeExecutorImpl for CodeExecutor<L>
 where
-    Self: LanguageExecutor2 + Execution,
+    Self: LanguageExecutor2,
 {
     fn set_code(&mut self, code: String) {
         self.code = code;
@@ -291,15 +291,11 @@ where
     }
 
     async fn create_code_file(&self) -> Result<()> {
-        let file_name = match self.executable.eval_type {
-            EvaluationType::Java => format!("{}/{}/Main.java", self.playground, self.id),
-            _ => self.user_code_file.clone(),
-        };
         debug!("CREATING CODE FILE file = {}", self.user_code_file);
-        match fs::write(&file_name, self.code.as_bytes()).await {
+        match fs::write(&self.user_code_file, self.code.as_bytes()).await {
             Ok(()) => return Ok(()),
             Err(e) => {
-                debug!("File : {file_name} , error: {:?}", &e);
+                debug!("File : {0} , error: {1:?}", self.user_code_file, &e);
                 return Err(e.into());
             },
         }
@@ -323,15 +319,20 @@ where
     async fn prepare_code_env(&mut self) -> Result<CodeExecutorResult, CodeExecutorError> {
         info!("CREATING CODE ENV");
 
-        self.user_code_file = format!(
-            "{}/{}/{}.{}",
-            self.playground, self.id, self.id, self.executable.file_type
-        );
+        self.user_code_file = match self.executable.eval_type {
+            EvaluationType::Java => format!("{}/{}/Main.java", self.playground, self.id),
+            _ => format!(
+                "{}/{}/{}.{}",
+                self.playground, self.id, self.id, self.executable.file_type
+            ),
+        };
 
         self.directory = format!("{}/{}", self.playground, self.id);
 
-        self.exec_code_file = format!("{}/{}/{}", self.playground, self.id, self.id);
-
+        self.exec_code_file = match self.executable.eval_type {
+            EvaluationType::Java => format!("{}/{}/Main", self.playground, self.id),
+            _ => format!("{}/{}/{}", self.playground, self.id, self.id),
+        };
         self.create_id_dir().await?;
         self.create_code_file().await?;
         self.prepare()
@@ -385,7 +386,8 @@ where
     }
 
     fn parse_args(&self, data: &[&str]) -> Vec<String> {
-        dbg!(data.iter()
+        dbg!(data
+            .iter()
             .map(|s| {
                 s.replace("$file", self.user_code_file.as_str())
                     .replace("$executable", self.exec_code_file.as_str())

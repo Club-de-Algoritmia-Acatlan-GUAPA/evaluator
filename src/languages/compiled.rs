@@ -5,15 +5,14 @@ use primitypes::{contest::Language, status::Status};
 
 use crate::{
     code_executor::{
-        CodeExecutor, CodeExecutorError, CodeExecutorImpl, CodeExecutorResult, Execution,
-        LanguageExecutor2,
+        CodeExecutor, CodeExecutorError, CodeExecutorImpl, CodeExecutorResult, LanguageExecutor2,
     },
     command::JailedCommand,
 };
 
 #[derive(Default, Clone)]
 pub struct Compiled;
-impl Execution for CodeExecutor<Compiled> {}
+//impl Execution for CodeExecutor<Compiled> {}
 impl LanguageExecutor2 for CodeExecutor<Compiled>
 where
     Self: Send + Sync,
