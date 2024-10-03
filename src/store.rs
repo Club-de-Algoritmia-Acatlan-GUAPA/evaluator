@@ -8,6 +8,7 @@ use primitypes::problem::{
 use reqwest::Client;
 use serde_json::json;
 use sqlx::PgPool;
+use uuid::Uuid;
 
 use crate::{
     consts::{CONFIGURATION, RESOURCES},
@@ -26,12 +27,12 @@ pub trait ProblemStore: std::fmt::Debug + Send + Sync {
     fn load_testcase(
         &self,
         problem_id: &ProblemId,
-        test_case_id_info: &str,
+        test_case_id_info: &Uuid,
     ) -> Result<TestCaseInfo, Self::Error>;
     async fn get_problem_by_id(&self, problem_id: &ProblemId) -> Result<Problem, Self::Error>;
-    //async fn get_test_case_config(&self, id: &ProblemId) -> Result<TestCaseConfig, Self::Error>;
-    //fn get_full_path_test_case(&self, problem_id: &ProblemId, test_case_id:
-    // &Uuid) -> TestCaseInfo;
+    //async fn get_test_case_config(&self, id: &ProblemId) ->
+    // Result<TestCaseConfig, Self::Error>; fn get_full_path_test_case(&self,
+    // problem_id: &ProblemId, test_case_id: &Uuid) -> TestCaseInfo;
 }
 
 impl<'pg> FileSystemStore<'pg> {
@@ -53,12 +54,13 @@ impl<'pg> FileSystemStore<'pg> {
 impl ProblemStore for FileSystemStore<'_> {
     type Error = TestCaseError;
 
-    //async fn get_test_case_config(&self, id: &ProblemId) -> Result<TestCaseConfig, Self::Error> {
-    //    let client = self.client.clone();
-    //    let url = format!("{}/{}", CONFIGURATION.upstream.uri, id.as_u32());
-    //    let res = client.get(url).send().await.map_err(|_| {
-    //        TestCaseError::ExternalError(anyhow!("Unable to fetch test case config"))
-    //    })?;
+    //async fn get_test_case_config(&self, id: &ProblemId) ->
+    // Result<TestCaseConfig, Self::Error> {    let client =
+    // self.client.clone();    let url = format!("{}/{}",
+    // CONFIGURATION.upstream.uri, id.as_u32());    let res =
+    // client.get(url).send().await.map_err(|_| {
+    //        TestCaseError::ExternalError(anyhow!("Unable to fetch test case
+    // config"))    })?;
     //    let bytes = res
     //        .bytes()
     //        .await
@@ -75,14 +77,9 @@ impl ProblemStore for FileSystemStore<'_> {
     fn load_testcase(
         &self,
         problem_id: &ProblemId,
-        test_case_id: &str,
+        test_case_id: &Uuid,
     ) -> Result<TestCaseInfo, Self::Error> {
-        let stdin_path = format!(
-            "{}/{}/{}.in",
-            *RESOURCES,
-            problem_id.as_u32(),
-            test_case_id
-        );
+        let stdin_path = format!("{}/{}/{}.in", *RESOURCES, problem_id.as_u32(), test_case_id);
 
         let stdout_path = format!(
             "{}/{}/{}.out",
@@ -105,10 +102,10 @@ impl ProblemStore for FileSystemStore<'_> {
             })?;
 
         Ok(TestCaseInfo {
-            id: test_case_id.to_string(),
+            id: *test_case_id,
             problem_id: problem_id.clone(),
             stdin_path,
-            stdout_path: Some(stdout_path),
+            stdout_path,
         })
     }
 
@@ -148,7 +145,7 @@ impl ProblemStore for FileSystemStore<'_> {
                 time_limit: row.time_limit as u16,
                 is_public: row.is_public,
                 validation: row.validation as ValidationType,
-                test_cases: row.testcases.unwrap_or_default(),
+                test_cases: row.testcases
             })
         })
         .map_err(|e| TestCaseError::ExternalError(e.into()))?

@@ -62,7 +62,7 @@
       {
         "ordinal": 9,
         "name": "testcases",
-        "type_info": "TextArray"
+        "type_info": "UuidArray"
       }
     ],
     "parameters": {
@@ -80,7 +80,7 @@
       false,
       false,
       false,
-      true
+      false
     ]
   },
   "hash": "735fe95010131fdda3b5cafa9c03325cdacf7ead3e5dbbf0c038d67a4b7287f8"

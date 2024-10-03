@@ -2,7 +2,9 @@ use std::process::{Command, Stdio};
 
 use anyhow::{anyhow, Result};
 use primitypes::{
-    contest::Language, problem::{ProblemId, SubmissionId, TestCaseInfo, TestCaseResult, ValidationType}, status::{CmpExitCodes, Status, TestLibExitCodes}
+    contest::Language,
+    problem::{ProblemId, SubmissionId, TestCaseInfo, TestCaseResult, ValidationType},
+    status::{CmpExitCodes, Status, TestLibExitCodes},
 };
 use tokio::fs::metadata;
 use tracing::info;
@@ -67,9 +69,9 @@ impl<'a> Validator<'a> {
                 .stdout(Stdio::piped())
                 .output()?;
             if !o.status.success() {
-                return Err(CodeExecutorError::ExternalError(
-                    anyhow!(String::from_utf8_lossy(&o.stderr).to_string()),
-                ));
+                return Err(CodeExecutorError::ExternalError(anyhow!(
+                    String::from_utf8_lossy(&o.stderr).to_string()
+                )));
             }
             info!("CHECKER COMPILED {:?}", o);
             info!("PREPARED");
@@ -84,7 +86,7 @@ impl<'a> Validator<'a> {
         info!("VALIDATING");
 
         let judge_input_file_name = &test_case.stdin_path;
-        let judge_output_file_name = test_case.stdout_path.clone().unwrap();
+        let judge_output_file_name = &test_case.stdout_path;
 
         let user_output_file_name = format!(
             "{}/{}/{}.out",
@@ -127,13 +129,13 @@ impl<'a> Validator<'a> {
             s @ Status::WrongAnswer | s @ Status::TimeLimitExceeded | s @ Status::PartialPoints => {
                 Err(TestCaseError::InternalError(TestCaseResult {
                     status: s,
-                    id: test_case.id.clone(),
+                    id: test_case.id,
                     output: Some(output),
                 }))
             },
             s @ Status::Accepted => Ok(TestCaseResult {
                 status: s,
-                id: test_case.id.clone(),
+                id: test_case.id,
                 output: Some(output),
             }),
             Status::UnknownError(e) => Err(TestCaseError::ExternalError(anyhow!(e))),
@@ -153,7 +155,7 @@ impl<'a> Validator<'a> {
             self.submission_id.as_u128(),
             test_case.id
         );
-        let judge_output_file_name = test_case.stdout_path.clone().unwrap();
+        let judge_output_file_name = test_case.stdout_path.clone();
         let output = c
             .arg("--silent")
             .arg(user_output_file_name)

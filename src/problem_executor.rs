@@ -9,6 +9,7 @@ use primitypes::{
 };
 use rayon::prelude::*;
 use tracing::{info, instrument};
+use uuid::Uuid;
 
 use crate::{
     code_executor::{CodeExecutor, CodeExecutorError, CodeExecutorImpl},
@@ -159,7 +160,7 @@ impl ProblemExecutor {
                             executor.as_ref(),
                             input_file,
                             &user_output_file,
-                            test_case_info.id.clone(),
+                            &test_case_info.id,
                         )?;
                         Self::validate(&validator, &test_case_info, &user_output_file)
                     })
@@ -217,7 +218,7 @@ impl ProblemExecutor {
         executor: &dyn CodeExecutorImpl,
         input_file: &str,
         output_file: &str,
-        test_case_id: String,
+        test_case_id: &Uuid
     ) -> Result<(), TestCaseError> {
         info!(
             "EXECUTING input_file =  {}, output_file = {} ",
@@ -229,7 +230,7 @@ impl ProblemExecutor {
                 CodeExecutorError::InternalError(e) => {
                     Err(TestCaseError::InternalError(TestCaseResult {
                         status: e.status,
-                        id: test_case_id,
+                        id: *test_case_id,
                         output: e.output,
                     }))
                 },
