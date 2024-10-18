@@ -12,7 +12,7 @@ use tracing::{info, instrument};
 use uuid::Uuid;
 
 use crate::{
-    code_executor::{CodeExecutor, CodeExecutorError, CodeExecutorImpl},
+    code_executor::{CodeExecutor, CodeExecutorError, CodeExecutorImpl, CodeExecutorResult},
     configuration::EvaluationType,
     consts::{LANGUAGE, PLAYGROUND},
     languages::{compiled, interpreted},
@@ -156,13 +156,17 @@ impl ProblemExecutor {
                         );
                         let input_file = test_case_info.stdin_path.as_str();
 
-                        Self::execute_code(
+                        let execution_result = Self::execute_code(
                             executor.as_ref(),
                             input_file,
                             &user_output_file,
                             &test_case_info.id,
                         )?;
-                        Self::validate(&validator, &test_case_info, &user_output_file)
+                        let mut validation_result =
+                            Self::validate(&validator, &test_case_info, &user_output_file)?;
+                        validation_result.duration = execution_result.duration;
+                        validation_result.output = execution_result.output;
+                        Ok(validation_result)
                     })
                     .partition(Result::is_ok);
 
@@ -218,20 +222,21 @@ impl ProblemExecutor {
         executor: &dyn CodeExecutorImpl,
         input_file: &str,
         output_file: &str,
-        test_case_id: &Uuid
-    ) -> Result<(), TestCaseError> {
+        test_case_id: &Uuid,
+    ) -> Result<CodeExecutorResult, TestCaseError> {
         info!(
             "EXECUTING input_file =  {}, output_file = {} ",
             input_file, output_file
         );
         match executor.execute(input_file, output_file) {
-            Ok(_) => Ok(()),
+            Ok(result) => Ok(result),
             Err(op) => match op {
                 CodeExecutorError::InternalError(e) => {
                     Err(TestCaseError::InternalError(TestCaseResult {
                         status: e.status,
                         id: *test_case_id,
                         output: e.output,
+                        duration: e.duration,
                     }))
                 },
                 CodeExecutorError::ExternalError(e) => Err(TestCaseError::ExternalError(e)),

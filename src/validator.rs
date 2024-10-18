@@ -131,12 +131,14 @@ impl<'a> Validator<'a> {
                     status: s,
                     id: test_case.id,
                     output: Some(output),
+                    ..Default::default()
                 }))
             },
             s @ Status::Accepted => Ok(TestCaseResult {
                 status: s,
                 id: test_case.id,
                 output: Some(output),
+                ..Default::default()
             }),
             Status::UnknownError(e) => Err(TestCaseError::ExternalError(anyhow!(e))),
             _ => {
@@ -181,11 +183,13 @@ impl<'a> Validator<'a> {
                 status: s,
                 id: test_case.id.clone(),
                 output: Some(output),
+                ..Default::default()
             })),
             s @ Status::Accepted => Ok(TestCaseResult {
                 status: s,
                 id: test_case.id.clone(),
                 output: Some(output),
+                ..Default::default()
             }),
             Status::UnknownError(e) => Err(TestCaseError::ExternalError(anyhow!(e))),
             _ => {
