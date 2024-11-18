@@ -62,7 +62,20 @@ async fn main() -> Result<()> {
                             .execute(pg_pool)
                             .await
                             .unwrap();
-
+                            if let Some(contest_id) = res.contest_id {
+                                let _ = sqlx::query!(
+                                    " 
+                                    UPDATE contest_submission
+                                    SET status = $2
+                                    WHERE submission_id = $1
+                                    ",
+                                    res.id.as_bit_vec(),
+                                    match_status_to_pg_status(&mes) as _
+                                )
+                                .execute(pg_pool)
+                                .await
+                                .unwrap();
+                            }
                             info!("STORE submission result");
                             delivery
                                 .ack(BasicAckOptions::default())
@@ -95,7 +108,10 @@ async fn main() -> Result<()> {
                 },
                 Err(e) => {
                     delivery
-                        .nack(BasicNackOptions::default())
+                        .nack(BasicNackOptions {
+                            multiple: false,
+                            requeue: true,
+                        })
                         .await
                         .expect("basic_nack");
                     info!("NACK to rabbitmq");

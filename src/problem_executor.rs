@@ -113,7 +113,7 @@ impl ProblemExecutor {
         let compilation_output = match executor.prepare_code_env().await {
             Ok(result) => result.output,
             Err(e) => {
-                let _ = executor.destroy().await;
+                //let _ = executor.destroy().await;
                 return Err(e.into());
             },
         };
@@ -136,6 +136,8 @@ impl ProblemExecutor {
             problem_id: problem.id.clone(),
         };
         validator.prepare_validator().await?;
+        dbg!(&test_cases_config);
+        dbg!(&chunks);
         let _: Result<Vec<_>, _> = chunks
             .map(|test_case_chunk| {
                 let (ok, err): (
@@ -208,7 +210,7 @@ impl ProblemExecutor {
             Status::UnknownError("Status can't be infered".to_string())
         };
 
-        let _ = executor.destroy().await;
+        //let _ = executor.destroy().await;
 
         Ok(ProblemExecutorResult {
             overall_result,

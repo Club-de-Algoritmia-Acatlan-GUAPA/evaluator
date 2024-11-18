@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": " \n                                    UPDATE contest_submission\n                                    SET status = $2\n                                    WHERE submission_id = $1\n                                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bit",
+        {
+          "Custom": {
+            "name": "submission_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "accepted",
+                "wrong_answer",
+                "runtime_error",
+                "time_limit_exceeded",
+                "compilation_error",
+                "partial_points",
+                "unknown_error"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "969cecd8f8db4687927ca496d9d3033a56c97cb3c634725f815ff59dd00c1229"
+}
