@@ -17,7 +17,8 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: Club-de-Algoritmia-Acatlan-GUAPA/evaluator
-        path: web_server
+        path: evaluator
+        submodules: 'recursive'
 
     - name: Checkout Primitypes
       uses: actions/checkout@v4
@@ -38,7 +39,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: ./web_server/Dockerfile
+        file: ./evaluator/amd_64.Dockerfile
         push: true
         tags: |
           ${{ secrets.DOCKERHUB_USERNAME }}/evaluator:latest
