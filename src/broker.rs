@@ -39,7 +39,7 @@ impl MessageBroker {
 
         let pool = Pool::builder()
             .connection_customizer(Box::new(Customizer))
-            .max_size(2)
+            .max_size(1)
             .min_idle(1)
             .retry_connection(true)
             .build(lapin_manager)
@@ -144,9 +144,11 @@ impl CustomizeConnection<CustomLapinConnection, lapin::Error> for Customizer {
             .confirm_select(ConfirmSelectOptions::default())
             .await?;
         conn.channel = Some(channel);
-        conn.channel
-            .as_mut()
-            .map(|c| c.basic_qos(1, BasicQosOptions::default()));
+        let f = conn.channel
+            .as_ref()
+            .unwrap()
+            .basic_qos(1, BasicQosOptions::default())
+            .await?;
         conn.consumer = Some(
             conn.channel
                 .as_ref()
