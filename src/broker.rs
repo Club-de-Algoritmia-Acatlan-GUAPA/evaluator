@@ -144,6 +144,9 @@ impl CustomizeConnection<CustomLapinConnection, lapin::Error> for Customizer {
             .confirm_select(ConfirmSelectOptions::default())
             .await?;
         conn.channel = Some(channel);
+        conn.channel
+            .as_mut()
+            .map(|c| c.basic_qos(1, BasicQosOptions::default()));
         conn.consumer = Some(
             conn.channel
                 .as_ref()
