@@ -4,7 +4,7 @@ notifications:
   port: 9999
   channel: 'channel_1'
 upstream:
-  uri: "http://localhost:3100"
+  uri: "http://localhost:2121"
 cache:
   host: 'localhost'
   port: 6379
@@ -12,7 +12,7 @@ cache:
 rabbitmq:
   host: 'localhost'
   queue: 'submissions'
-  consumer: 'consumer_1'
+  consumer: 'consumer_2'
   port: 8778
 postgres:
   host: '127.0.0.1'
@@ -22,16 +22,16 @@ postgres:
   password: 'postgres'
 evaluator:
   playground: '/Users/yollotl/guapa/judge/juez_guapa/backend/evaluator/playground'
-  resources: '/Users/yollotl/guapa/judge/juez_guapa/backend/evaluator/resources'
+  resources: '/Users/yollotl/guapa/judge/juez_guapa/backend/testcaseFTP/resources'
   nsjail_config: '/Users/yollotl/guapa/judge/juez_guapa/backend/evaluator/resources/nsjail.cfg'
 language:
   cpp17:
-    path: '/usr/bin/gcc'
+    path: '/opt/homebrew/bin/g++-14'
     args:  ['-std=c++1z', '$file', '-o', '$executable']
     eval_type: 'compiled'
     file_type: 'cpp'
   cpp11:
-    path: '/usr/bin/gcc'
+    path: '/opt/homebrew/bin/g++-14'
     args:  ['-std=c++11', '$file', '-o', '$executable']
     eval_type: 'compiled'
     file_type: 'cpp'
@@ -50,3 +50,6 @@ language:
     args:  []
     eval_type: 'interpreted'
     file_type: ''
+postgres_queue:
+  queue: 'submission_queue'
+  notification_channel: 'submission_channel'

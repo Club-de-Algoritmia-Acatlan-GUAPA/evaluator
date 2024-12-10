@@ -9,7 +9,11 @@ use primitypes::{
 use tokio::fs::metadata;
 use tracing::info;
 
-use crate::{code_executor::CodeExecutorError, consts::LANGUAGE, types::TestCaseError};
+use crate::{
+    code_executor::CodeExecutorError,
+    consts::LANGUAGE,
+    types::{EvaluatorError, TestCaseError},
+};
 #[derive(Clone)]
 pub struct Validator<'a> {
     validation_type: &'a ValidationType,
@@ -69,9 +73,11 @@ impl<'a> Validator<'a> {
                 .stdout(Stdio::piped())
                 .output()?;
             if !o.status.success() {
-                return Err(CodeExecutorError::ExternalError(anyhow!(
-                    String::from_utf8_lossy(&o.stderr).to_string()
-                )));
+                return Err(CodeExecutorError::ExternalError(
+                    EvaluatorError::FailedTestLibCheckerCompilation(
+                        String::from_utf8_lossy(&o.stderr).to_string(),
+                    ),
+                ));
             }
             info!("CHECKER COMPILED {:?}", o);
             info!("PREPARED");
@@ -140,7 +146,9 @@ impl<'a> Validator<'a> {
                 output: Some(output),
                 ..Default::default()
             }),
-            Status::UnknownError(e) => Err(TestCaseError::ExternalError(anyhow!(e))),
+            Status::UnknownError(e) => Err(TestCaseError::ExternalError(
+                EvaluatorError::GenericError(anyhow!(e)),
+            )),
             _ => {
                 unreachable!()
             },
@@ -191,7 +199,9 @@ impl<'a> Validator<'a> {
                 output: Some(output),
                 ..Default::default()
             }),
-            Status::UnknownError(e) => Err(TestCaseError::ExternalError(anyhow!(e))),
+            Status::UnknownError(e) => Err(TestCaseError::ExternalError(
+                EvaluatorError::GenericError(anyhow!(e)),
+            )),
             _ => {
                 unreachable!()
             },

@@ -6,13 +6,12 @@ use primitypes::problem::{
     Checker, Problem, ProblemId, TestCaseConfig, TestCaseIdInfo, TestCaseInfo, ValidationType,
 };
 use reqwest::Client;
-use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
     consts::{CONFIGURATION, RESOURCES},
-    types::TestCaseError,
+    types::{EvaluatorError, TestCaseError, TestCaseErrorExternalError},
 };
 
 #[derive(Debug)]
@@ -91,14 +90,20 @@ impl ProblemStore for FileSystemStore<'_> {
             .is_file()
             .then_some(|| ())
             .ok_or_else(|| {
-                TestCaseError::ExternalError(anyhow!("File: {} not found", stdin_path))
+                TestCaseError::ExternalError(EvaluatorError::GenericError(anyhow!(
+                    "File: {} not found",
+                    stdin_path
+                )))
             })?;
 
         let _ = Path::new(&stdout_path)
             .is_file()
             .then_some(|| ())
             .ok_or_else(|| {
-                TestCaseError::ExternalError(anyhow!("File: {} not found", stdin_path))
+                TestCaseError::ExternalError(EvaluatorError::GenericError(anyhow!(
+                    "File: {} not found",
+                    stdin_path
+                )))
             })?;
 
         Ok(TestCaseInfo {
@@ -111,7 +116,7 @@ impl ProblemStore for FileSystemStore<'_> {
 
     async fn get_problem_by_id(&self, problem_id: &ProblemId) -> Result<Problem, Self::Error> {
         // TODO implement implentation of IntoRow
-        sqlx::query!(
+        match sqlx::query!(
             r#"
             SELECT 
                 id,
@@ -129,26 +134,49 @@ impl ProblemStore for FileSystemStore<'_> {
             "#,
             problem_id.as_u32() as i32
         )
-        .fetch_one(self.pg_pool)
-        .await
-        .map(|row| -> Result<Problem, Self::Error> {
-            let body = serde_json::from_str(&row.body.to_string())
-                .map_err(|e| TestCaseError::ExternalError(e.into()))?;
+        .fetch_optional(self.pg_pool)
+        .await?
+        {
+            Some(row) => {
+                let body = serde_json::from_str(&row.body.to_string()).map_err(|e| {
+                    TestCaseError::ExternalError(EvaluatorError::GenericError(e.into()))
+                })?;
 
-            Ok(Problem {
-                id: ProblemId(row.id as u32),
-                checker: row.checker.map(|s| Checker { checker: s }),
-                created_at: row.created_at,
-                submitted_by: row.submitted_by,
-                body,
-                memory_limit: row.memory_limit as u16,
-                time_limit: row.time_limit as u16,
-                is_public: row.is_public,
-                validation: row.validation as ValidationType,
-                test_cases: row.testcases
-            })
-        })
-        .map_err(|e| TestCaseError::ExternalError(e.into()))?
+                Ok(Problem {
+                    id: ProblemId(row.id as u32),
+                    checker: row.checker.map(|s| Checker { checker: s }),
+                    created_at: row.created_at,
+                    submitted_by: row.submitted_by,
+                    body,
+                    memory_limit: row.memory_limit as u16,
+                    time_limit: row.time_limit as u16,
+                    is_public: row.is_public,
+                    validation: row.validation as ValidationType,
+                    test_cases: row.testcases,
+                })
+            },
+            None => Err(TestCaseError::ExternalError(
+                EvaluatorError::ProblemNotFound,
+            )),
+        }
+        //.map(|row| -> Result<Problem, Self::Error> {
+        //    let body = serde_json::from_str(&row.body.to_string())
+        //        .map_err(|e| TestCaseError::ExternalError(e.into()))?;
+        //
+        //    Ok(Problem {
+        //        id: ProblemId(row.id as u32),
+        //        checker: row.checker.map(|s| Checker { checker: s }),
+        //        created_at: row.created_at,
+        //        submitted_by: row.submitted_by,
+        //        body,
+        //        memory_limit: row.memory_limit as u16,
+        //        time_limit: row.time_limit as u16,
+        //        is_public: row.is_public,
+        //        validation: row.validation as ValidationType,
+        //        test_cases: row.testcases,
+        //    })
+        //})
+        //.map_err(|e| TestCaseError::ExternalError(e.into()))?
     }
 }
 

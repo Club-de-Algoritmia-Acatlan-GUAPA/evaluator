@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use anyhow::Result;
 use itertools::{Either, Itertools};
@@ -17,28 +17,28 @@ use crate::{
     consts::{LANGUAGE, PLAYGROUND},
     languages::{compiled, interpreted},
     store::ProblemStore,
-    types::TestCaseError,
+    types::{EvaluatorError, TestCaseError, TestCaseErrorExternalError},
     utils::file_to_bytes,
     validator::Validator,
 };
 
 #[derive(Debug)]
-pub struct ProblemExecutor {
+pub struct ProblemExecutor<'a> {
     playground: String,
     resources: String,
-    problem_store: Box<dyn ProblemStore<Error = TestCaseError>>,
+    problem_store: Box<dyn ProblemStore<Error = TestCaseError> + 'a>,
 }
 
 #[derive(Debug)]
 pub enum ProblemExecutorError {
     InternalError(ProblemExecutorResult),
-    ExternalError(anyhow::Error),
+    ExternalError(EvaluatorError),
 }
 
 #[derive(Debug)]
 pub enum TestExecutionError {
     InternalError(TestCaseResult),
-    ExternalError(anyhow::Error),
+    ExternalError(EvaluatorError),
 }
 
 impl<E> From<E> for ProblemExecutorError
@@ -46,7 +46,7 @@ where
     E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
-        Self::ExternalError(err.into())
+        Self::ExternalError(EvaluatorError::GenericError(err.into()))
     }
 }
 
@@ -57,6 +57,7 @@ impl From<CodeExecutorError> for ProblemExecutorError {
                 overall_result: e.status,
                 test_cases_results: vec![],
                 prepare_output: e.output,
+                total_duration: e.duration,
             }),
             CodeExecutorError::ExternalError(e) => Self::ExternalError(e),
         }
@@ -70,16 +71,17 @@ impl From<TestCaseError> for ProblemExecutorError {
                 overall_result: e.status,
                 test_cases_results: vec![],
                 prepare_output: e.output,
+                total_duration: e.duration,
             }),
             TestCaseError::ExternalError(e) => Self::ExternalError(e),
         }
     }
 }
-impl ProblemExecutor {
+impl<'a> ProblemExecutor<'a> {
     pub fn new(
         playground: &str,
         resources: &str,
-        store: Box<dyn ProblemStore<Error = TestCaseError>>,
+        store: Box<dyn ProblemStore<Error = TestCaseError> + 'a>,
     ) -> Self {
         Self {
             playground: playground.to_string(),
@@ -121,14 +123,6 @@ impl ProblemExecutor {
         let mut test_ok: Vec<TestCaseResult> = vec![];
         let mut test_err: Vec<TestCaseError> = vec![];
 
-        //let test_cases_config = self
-        //    .problem_store
-        //    .get_test_case_config(&problem.id)
-        //    .await
-        //    .map_err(|_| {
-        //        ProblemExecutorError::ExternalError(anyhow!("Unable to get problem
-        // config file"))    })?;
-
         let chunks = problem.test_cases.chunks(6);
 
         let test_cases_config = TestCaseConfig {
@@ -165,7 +159,17 @@ impl ProblemExecutor {
                             &test_case_info.id,
                         )?;
                         let mut validation_result =
-                            Self::validate(&validator, &test_case_info, &user_output_file)?;
+                            match Self::validate(&validator, &test_case_info, &user_output_file) {
+                                Ok(result) => result,
+                                Err(TestCaseError::InternalError(mut e)) => {
+                                    e.duration = execution_result.duration;
+                                    e.output = execution_result.output;
+                                    return Err(TestCaseError::InternalError(e));
+                                },
+                                Err(TestCaseError::ExternalError(e)) => {
+                                    return Err(TestCaseError::ExternalError(e));
+                                },
+                            };
                         validation_result.duration = execution_result.duration;
                         validation_result.output = execution_result.output;
                         Ok(validation_result)
@@ -209,11 +213,15 @@ impl ProblemExecutor {
         } else {
             Status::UnknownError("Status can't be infered".to_string())
         };
-
+        let mut total_duration = Duration::default();
+        for test_case in test_ok.iter() {
+            total_duration += test_case.duration;
+        }
         //let _ = executor.destroy().await;
 
         Ok(ProblemExecutorResult {
             overall_result,
+            total_duration,
             test_cases_results: test_ok,
             prepare_output: compilation_output,
         })
@@ -289,12 +297,10 @@ impl ProblemExecutor {
         }
     }
 
+    // TODO: avoid boxing a code executor everytime
+    // box the executors in the beginning of the execution loop.
     fn get_executor(language: &Language) -> Box<dyn CodeExecutorImpl> {
         match LANGUAGE.get(language) {
-            //Language::Python3 => {
-            //    use crate::languages::python_3;
-            //    Box::new(CodeExecutor::<python_3::Python3>::new(*PLAYGROUND))
-            //},
             Some(cmd) => match cmd.eval_type {
                 EvaluationType::Compiled => Box::new(CodeExecutor::<compiled::Compiled>::new2(
                     *PLAYGROUND,
@@ -308,14 +314,6 @@ impl ProblemExecutor {
                     language,
                 )),
             },
-            //Language::Cpp17 => {
-            //    use crate::languages::cpp;
-            //    Box::new(CodeExecutor::<cpp::Cpp17>::new(*PLAYGROUND))
-            //},
-            //Language::Java => {
-            //    use crate::languages::java;
-            //    Box::new(CodeExecutor::<java::Java>::new(*PLAYGROUND))
-            //},
             _ => todo!(),
         }
     }

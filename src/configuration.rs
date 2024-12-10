@@ -13,6 +13,7 @@ pub struct Settings {
     pub cache: Option<RedisSettings>,
     pub rabbitmq: RabbitMqSettings,
     pub postgres: PostgresSettings,
+    pub postgres_queue: PostgresQueue,
     pub upstream: UpStreamSettings,
     pub evaluator: EvaluatorSettings,
     pub language: LanguageBinary,
@@ -31,6 +32,12 @@ pub struct RabbitMqSettings {
     pub queue: String,
     pub consumer: String,
     pub port: usize,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct PostgresQueue {
+    pub queue: String,
+    pub notification_channel: String,
 }
 #[derive(serde::Deserialize, Clone)]
 pub struct PostgresSettings {

@@ -13,6 +13,7 @@ use crate::{
     command::JailedCommand,
     configuration::{CmdStr, EvaluationType},
     consts::LANGUAGE,
+    types::EvaluatorError,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -31,7 +32,7 @@ pub struct CodeExecutorInternalError {
 #[derive(Debug)]
 pub enum CodeExecutorError {
     InternalError(CodeExecutorInternalError),
-    ExternalError(anyhow::Error),
+    ExternalError(EvaluatorError),
 }
 //pub trait Execution {}
 
@@ -40,7 +41,7 @@ where
     E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
-        Self::ExternalError(err.into())
+        Self::ExternalError(EvaluatorError::GenericError(err.into()))
     }
 }
 

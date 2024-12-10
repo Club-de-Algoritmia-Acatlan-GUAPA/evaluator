@@ -1,12 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": " \n                                UPDATE submission\n                                SET output = $2 , status = $3\n                                WHERE id = $1\n                                ",
+  "query": " \n                    UPDATE contest_submission\n                    SET status = $2\n                    WHERE submission_id = $1\n                    ",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
         "Bit",
-        "Jsonb",
         {
           "Custom": {
             "name": "submission_status",
@@ -28,5 +27,5 @@
     },
     "nullable": []
   },
-  "hash": "d379d3a026df258ba53a3704cd3320e9d362643690785bd6f6195d74f7abf58b"
+  "hash": "b0c007c5c6216f52b0b2022af0e846b5b6cdb0e4e51963ba16acc22709888b6b"
 }

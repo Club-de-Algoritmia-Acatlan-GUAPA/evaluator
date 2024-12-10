@@ -12,5 +12,5 @@ postgres:
   host: 'host.docker.internal'
   user: 'postgres'
   password: 'password'
-  database: 'juezguapa'
+  database: 'juezguapa_2'
   port: 8787

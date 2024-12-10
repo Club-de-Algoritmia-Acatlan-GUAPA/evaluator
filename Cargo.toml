@@ -48,8 +48,9 @@ fred = { version = "8.0.5", features = ["enable-rustls"] }
 ts-rs = { version = "8.0.0", features = ["uuid-impl"] }
 num_cpus = "1.16.0"
 tracing-core = "0.1.32"
+pgmq = "0.29.3"
 [dependencies.sqlx]
-version = "0.7.3"
+version = "0.8.2"
 default-features = false
 features = ["runtime-tokio-rustls", "macros", "postgres", "uuid", "chrono", "migrate", "rust_decimal", "json", "bit-vec"]
 
