@@ -50,6 +50,11 @@ language:
     args:  []
     eval_type: 'interpreted'
     file_type: ''
+  c:
+    path: '/usr/bin/gcc'
+    args:  ['$file', '-o', '$executable']
+    eval_type: 'compiled'
+    file_type: 'c'
 postgres_queue:
   queue: 'submission_queue'
   notification_channel: 'submission_channel'
